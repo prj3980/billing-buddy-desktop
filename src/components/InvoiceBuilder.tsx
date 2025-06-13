@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,20 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, Save, X } from "lucide-react";
+import { Plus, Minus, Save, X, IndianRupee } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
   name: string;
-  price: number;
+  basePrice?: number;
+  hasVariableColors: boolean;
 }
 
 interface InvoiceItem {
-  productId: string;
+  id: string;
   productName: string;
+  colorCode: string;
+  volume: string;
+  finalName: string;
   quantity: number;
-  price: number;
+  rate: number;
   total: number;
 }
 
@@ -62,7 +67,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [taxRate, setTaxRate] = useState(10);
+  const [taxRate, setTaxRate] = useState(18); // GST rate for India
   const { toast } = useToast();
 
   useEffect(() => {
@@ -83,34 +88,44 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   }, []);
 
   const addInvoiceItem = () => {
-    setInvoiceItems([...invoiceItems, {
-      productId: '',
+    const newItem: InvoiceItem = {
+      id: Date.now().toString(),
       productName: '',
+      colorCode: '',
+      volume: '',
+      finalName: '',
       quantity: 1,
-      price: 0,
+      rate: 0,
       total: 0
-    }]);
+    };
+    setInvoiceItems([...invoiceItems, newItem]);
   };
 
-  const removeInvoiceItem = (index: number) => {
-    const updatedItems = invoiceItems.filter((_, i) => i !== index);
+  const removeInvoiceItem = (id: string) => {
+    const updatedItems = invoiceItems.filter(item => item.id !== id);
     setInvoiceItems(updatedItems);
   };
 
-  const updateInvoiceItem = (index: number, field: keyof InvoiceItem, value: any) => {
-    const updatedItems = [...invoiceItems];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
-    
-    if (field === 'productId') {
-      const selectedProduct = products.find(p => p.id === value);
-      if (selectedProduct) {
-        updatedItems[index].productName = selectedProduct.name;
-        updatedItems[index].price = selectedProduct.price;
+  const updateInvoiceItem = (id: string, field: keyof InvoiceItem, value: any) => {
+    const updatedItems = invoiceItems.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        
+        // Auto-generate final name when product name, color code, or volume changes
+        if (field === 'productName' || field === 'colorCode' || field === 'volume') {
+          const parts = [updatedItem.productName, updatedItem.colorCode, updatedItem.volume].filter(Boolean);
+          updatedItem.finalName = parts.join(' - ');
+        }
+        
+        // Recalculate total when quantity or rate changes
+        if (field === 'quantity' || field === 'rate') {
+          updatedItem.total = updatedItem.quantity * updatedItem.rate;
+        }
+        
+        return updatedItem;
       }
-    }
-    
-    // Recalculate total for this item
-    updatedItems[index].total = updatedItems[index].quantity * updatedItems[index].price;
+      return item;
+    });
     
     setInvoiceItems(updatedItems);
   };
@@ -196,6 +211,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {/* Customer Information */}
           <Card>
             <CardHeader>
               <CardTitle>Customer Information</CardTitle>
@@ -228,7 +244,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                     id="customerPhone"
                     value={customerDetails.phone}
                     onChange={(e) => setCustomerDetails(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="+91 98765 43210"
                   />
                 </div>
               </div>
@@ -238,13 +254,14 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                   id="customerAddress"
                   value={customerDetails.address}
                   onChange={(e) => setCustomerDetails(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="123 Main St, City, State, ZIP"
+                  placeholder="Complete address with pin code"
                   rows={2}
                 />
               </div>
             </CardContent>
           </Card>
 
+          {/* Invoice Details */}
           <Card>
             <CardHeader>
               <CardTitle>Invoice Details</CardTitle>
@@ -253,13 +270,13 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                  <Label htmlFor="taxRate">GST Rate (%)</Label>
                   <Input
                     id="taxRate"
                     type="number"
                     value={taxRate}
                     onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                    placeholder="10"
+                    placeholder="18"
                   />
                 </div>
                 <div>
@@ -284,12 +301,13 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             </CardContent>
           </Card>
 
+          {/* Invoice Items */}
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
                   <CardTitle>Invoice Items</CardTitle>
-                  <CardDescription>Add products and services to this invoice</CardDescription>
+                  <CardDescription>Add paint products with color codes and volumes</CardDescription>
                 </div>
                 <Button onClick={addInvoiceItem} size="sm">
                   <Plus className="h-4 w-4 mr-2" />
@@ -299,62 +317,96 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {invoiceItems.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-4">
-                      <Label htmlFor={`product-${index}`}>Product</Label>
-                      <Select
-                        value={item.productId}
-                        onValueChange={(value) => updateInvoiceItem(index, 'productId', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select product" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map(product => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name} - ${product.price}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-2">
-                      <Label htmlFor={`quantity-${index}`}>Qty</Label>
-                      <Input
-                        id={`quantity-${index}`}
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateInvoiceItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                        min="1"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label htmlFor={`price-${index}`}>Price</Label>
-                      <Input
-                        id={`price-${index}`}
-                        type="number"
-                        step="0.01"
-                        value={item.price}
-                        onChange={(e) => updateInvoiceItem(index, 'price', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <Label>Total</Label>
-                      <div className="h-10 px-3 py-2 border rounded-md bg-gray-50 flex items-center">
-                        ${item.total.toFixed(2)}
+                {invoiceItems.map((item) => (
+                  <Card key={item.id} className="p-4">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label>Product Name</Label>
+                          <Select
+                            value={item.productName}
+                            onValueChange={(value) => updateInvoiceItem(item.id, 'productName', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select product" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.map(product => (
+                                <SelectItem key={product.id} value={product.name}>
+                                  {product.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Color Code</Label>
+                          <Input
+                            value={item.colorCode}
+                            onChange={(e) => updateInvoiceItem(item.id, 'colorCode', e.target.value)}
+                            placeholder="e.g., RAL 9010, NCS S 1000-N"
+                          />
+                        </div>
+                        <div>
+                          <Label>Volume</Label>
+                          <Input
+                            value={item.volume}
+                            onChange={(e) => updateInvoiceItem(item.id, 'volume', e.target.value)}
+                            placeholder="e.g., 1L, 4L, 20L"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label>Final Product Name</Label>
+                        <Input
+                          value={item.finalName}
+                          onChange={(e) => updateInvoiceItem(item.id, 'finalName', e.target.value)}
+                          placeholder="Auto-generated or edit manually"
+                          className="font-medium"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                          <Label>Quantity</Label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateInvoiceItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                            min="1"
+                          />
+                        </div>
+                        <div>
+                          <Label>Rate (₹)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.rate}
+                            onChange={(e) => updateInvoiceItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Total (₹)</Label>
+                          <div className="h-10 px-3 py-2 border rounded-md bg-gray-50 flex items-center">
+                            <IndianRupee className="h-4 w-4 mr-1" />
+                            {item.total.toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeInvoiceItem(item.id)}
+                            className="w-full"
+                          >
+                            <Minus className="h-4 w-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <div className="col-span-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeInvoiceItem(index)}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  </Card>
                 ))}
                 
                 {invoiceItems.length === 0 && (
@@ -366,13 +418,14 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             </CardContent>
           </Card>
 
+          {/* Additional Notes */}
           <Card>
             <CardHeader>
               <CardTitle>Additional Notes</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="Add any additional notes or terms for this invoice..."
+                placeholder="Add any additional notes, terms & conditions, or special instructions..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
@@ -381,6 +434,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
           </Card>
         </div>
 
+        {/* Invoice Summary */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -390,16 +444,25 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>${calculateSubtotal().toFixed(2)}</span>
+                  <span className="flex items-center">
+                    <IndianRupee className="h-4 w-4" />
+                    {calculateSubtotal().toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Tax ({taxRate}%):</span>
-                  <span>${calculateTax().toFixed(2)}</span>
+                  <span>GST ({taxRate}%):</span>
+                  <span className="flex items-center">
+                    <IndianRupee className="h-4 w-4" />
+                    {calculateTax().toFixed(2)}
+                  </span>
                 </div>
                 <hr />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
-                  <span>${calculateTotal().toFixed(2)}</span>
+                  <span className="flex items-center">
+                    <IndianRupee className="h-4 w-4" />
+                    {calculateTotal().toFixed(2)}
+                  </span>
                 </div>
               </div>
             </CardContent>

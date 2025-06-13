@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +11,8 @@ import Reports from "@/components/Reports";
 import StoreSettings from "@/components/StoreSettings";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [showInvoiceBuilder, setShowInvoiceBuilder] = useState(false);
+  const [activeTab, setActiveTab] = useState("invoices");
+  const [showInvoiceBuilder, setShowInvoiceBuilder] = useState(true);
 
   const handleCreateInvoice = () => {
     setShowInvoiceBuilder(true);
