@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,12 +14,6 @@ interface Product {
   price: number;
 }
 
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-}
-
 interface InvoiceItem {
   productId: string;
   productName: string;
@@ -29,30 +22,58 @@ interface InvoiceItem {
   total: number;
 }
 
+interface CustomerDetails {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+interface StoreInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  taxId: string;
+  website: string;
+}
+
 interface InvoiceBuilderProps {
   onClose: () => void;
 }
 
 const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [storeInfo, setStoreInfo] = useState<StoreInfo>({
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    taxId: '',
+    website: ''
+  });
+  const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [taxRate, setTaxRate] = useState(10); // 10% default tax
+  const [taxRate, setTaxRate] = useState(10);
   const { toast } = useToast();
 
   useEffect(() => {
     const savedProducts = localStorage.getItem('products');
-    const savedCustomers = localStorage.getItem('customers');
+    const savedStoreInfo = localStorage.getItem('storeInfo');
     
     if (savedProducts) {
       setProducts(JSON.parse(savedProducts));
     }
-    if (savedCustomers) {
-      setCustomers(JSON.parse(savedCustomers));
+    if (savedStoreInfo) {
+      setStoreInfo(JSON.parse(savedStoreInfo));
     }
     
     // Set default due date to 30 days from now
@@ -115,10 +136,10 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   };
 
   const handleSaveInvoice = () => {
-    if (!selectedCustomer) {
+    if (!customerDetails.name.trim()) {
       toast({
         title: "Error",
-        description: "Please select a customer.",
+        description: "Please enter customer name.",
         variant: "destructive",
       });
       return;
@@ -133,13 +154,11 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
       return;
     }
 
-    const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
-    
     const invoice = {
       id: Date.now().toString(),
       invoiceNumber: generateInvoiceNumber(),
-      customerId: selectedCustomer,
-      customerName: selectedCustomerData?.name || '',
+      customerDetails: customerDetails,
+      storeInfo: storeInfo,
       date: invoiceDate,
       dueDate: dueDate,
       items: invoiceItems,
@@ -179,26 +198,60 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Invoice Details</CardTitle>
-              <CardDescription>Set up the basic invoice information</CardDescription>
+              <CardTitle>Customer Information</CardTitle>
+              <CardDescription>Enter customer details for this invoice</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="customer">Customer *</Label>
-                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map(customer => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="customerName">Customer Name *</Label>
+                  <Input
+                    id="customerName"
+                    value={customerDetails.name}
+                    onChange={(e) => setCustomerDetails(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="John Doe"
+                  />
                 </div>
+                <div>
+                  <Label htmlFor="customerEmail">Email</Label>
+                  <Input
+                    id="customerEmail"
+                    type="email"
+                    value={customerDetails.email}
+                    onChange={(e) => setCustomerDetails(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="john@example.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customerPhone">Phone</Label>
+                  <Input
+                    id="customerPhone"
+                    value={customerDetails.phone}
+                    onChange={(e) => setCustomerDetails(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="customerAddress">Address</Label>
+                <Textarea
+                  id="customerAddress"
+                  value={customerDetails.address}
+                  onChange={(e) => setCustomerDetails(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="123 Main St, City, State, ZIP"
+                  rows={2}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoice Details</CardTitle>
+              <CardDescription>Set up the basic invoice information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="taxRate">Tax Rate (%)</Label>
                   <Input

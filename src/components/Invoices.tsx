@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,8 +8,20 @@ import { useToast } from "@/hooks/use-toast";
 interface Invoice {
   id: string;
   invoiceNumber: string;
-  customerId: string;
-  customerName: string;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
+  storeInfo: {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    taxId: string;
+    website: string;
+  };
   date: string;
   dueDate: string;
   items: Array<{
@@ -75,24 +86,40 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
           <title>Invoice ${invoice.invoiceNumber}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .invoice-details { margin-bottom: 20px; }
-            .table { width: 100%; border-collapse: collapse; }
+            .header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 30px; }
+            .company-info { text-align: left; }
+            .invoice-title { text-align: right; }
+            .customer-info { margin-bottom: 20px; }
+            .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
             .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             .table th { background-color: #f2f2f2; }
             .total { text-align: right; margin-top: 20px; }
+            .notes { margin-top: 20px; }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>INVOICE</h1>
-            <h2>${invoice.invoiceNumber}</h2>
+            <div class="company-info">
+              <h2>${invoice.storeInfo.name}</h2>
+              <p>${invoice.storeInfo.address}</p>
+              <p>Phone: ${invoice.storeInfo.phone}</p>
+              <p>Email: ${invoice.storeInfo.email}</p>
+              ${invoice.storeInfo.taxId ? `<p>Tax ID: ${invoice.storeInfo.taxId}</p>` : ''}
+            </div>
+            <div class="invoice-title">
+              <h1>INVOICE</h1>
+              <h2>${invoice.invoiceNumber}</h2>
+              <p>Date: ${invoice.date}</p>
+              <p>Due Date: ${invoice.dueDate}</p>
+            </div>
           </div>
           
-          <div class="invoice-details">
-            <p><strong>Customer:</strong> ${invoice.customerName}</p>
-            <p><strong>Date:</strong> ${invoice.date}</p>
-            <p><strong>Due Date:</strong> ${invoice.dueDate}</p>
+          <div class="customer-info">
+            <h3>Bill To:</h3>
+            <p><strong>${invoice.customerDetails.name}</strong></p>
+            ${invoice.customerDetails.address ? `<p>${invoice.customerDetails.address}</p>` : ''}
+            ${invoice.customerDetails.phone ? `<p>Phone: ${invoice.customerDetails.phone}</p>` : ''}
+            ${invoice.customerDetails.email ? `<p>Email: ${invoice.customerDetails.email}</p>` : ''}
           </div>
           
           <table class="table">
@@ -122,7 +149,7 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
             <p><strong>Total: $${invoice.total.toFixed(2)}</strong></p>
           </div>
           
-          ${invoice.notes ? `<div><strong>Notes:</strong> ${invoice.notes}</div>` : ''}
+          ${invoice.notes ? `<div class="notes"><strong>Notes:</strong><br>${invoice.notes}</div>` : ''}
         </body>
       </html>
     `;
@@ -164,7 +191,7 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
             <div className="flex justify-between items-center">
               <div>
                 <CardTitle>Invoice {selectedInvoice.invoiceNumber}</CardTitle>
-                <CardDescription>Customer: {selectedInvoice.customerName}</CardDescription>
+                <CardDescription>Customer: {selectedInvoice.customerDetails.name}</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => handlePrint(selectedInvoice)}>
@@ -190,6 +217,16 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                       {selectedInvoice.status}
                     </Badge>
                   </p>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">Customer:</h4>
+                <div className="bg-gray-50 p-3 rounded">
+                  <p><strong>{selectedInvoice.customerDetails.name}</strong></p>
+                  {selectedInvoice.customerDetails.email && <p>{selectedInvoice.customerDetails.email}</p>}
+                  {selectedInvoice.customerDetails.phone && <p>{selectedInvoice.customerDetails.phone}</p>}
+                  {selectedInvoice.customerDetails.address && <p>{selectedInvoice.customerDetails.address}</p>}
                 </div>
               </div>
               
@@ -246,7 +283,7 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                 </div>
               </div>
               <CardTitle className="text-lg">{invoice.invoiceNumber}</CardTitle>
-              <CardDescription>{invoice.customerName}</CardDescription>
+              <CardDescription>{invoice.customerDetails.name}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
