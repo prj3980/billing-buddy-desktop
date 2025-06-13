@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Plus, Eye, Printer, Trash2 } from "lucide-react";
+import { FileText, Plus, Eye, Printer, Trash2, IndianRupee } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Invoice {
@@ -25,10 +26,13 @@ interface Invoice {
   date: string;
   dueDate: string;
   items: Array<{
-    productId: string;
+    id: string;
     productName: string;
+    colorCode: string;
+    volume: string;
+    finalName: string;
     quantity: number;
-    price: number;
+    rate: number;
     total: number;
   }>;
   subtotal: number;
@@ -85,37 +89,111 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
         <head>
           <title>Invoice ${invoice.invoiceNumber}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 30px; }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              line-height: 1.4;
+              color: #333;
+            }
+            .header { 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: start; 
+              margin-bottom: 30px; 
+              border-bottom: 2px solid #eee;
+              padding-bottom: 20px;
+            }
             .company-info { text-align: left; }
             .invoice-title { text-align: right; }
-            .customer-info { margin-bottom: 20px; }
-            .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .table th { background-color: #f2f2f2; }
-            .total { text-align: right; margin-top: 20px; }
-            .notes { margin-top: 20px; }
+            .invoice-title h1 { 
+              margin: 0; 
+              font-size: 28px; 
+              color: #2563eb; 
+            }
+            .invoice-title h2 { 
+              margin: 5px 0; 
+              font-size: 18px; 
+              color: #666; 
+            }
+            .customer-info { 
+              margin-bottom: 20px; 
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 5px;
+            }
+            .table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 20px 0; 
+            }
+            .table th, .table td { 
+              border: 1px solid #ddd; 
+              padding: 12px 8px; 
+              text-align: left; 
+            }
+            .table th { 
+              background-color: #f2f2f2; 
+              font-weight: bold;
+            }
+            .table td:last-child, .table th:last-child { 
+              text-align: right; 
+            }
+            .total-section { 
+              text-align: right; 
+              margin-top: 20px; 
+              border-top: 2px solid #eee;
+              padding-top: 15px;
+            }
+            .total-row { 
+              display: flex; 
+              justify-content: flex-end; 
+              margin: 5px 0;
+            }
+            .total-label { 
+              width: 120px; 
+              text-align: right; 
+              margin-right: 20px;
+            }
+            .total-amount { 
+              width: 100px; 
+              text-align: right; 
+              font-weight: bold;
+            }
+            .final-total { 
+              font-size: 18px; 
+              border-top: 1px solid #ccc; 
+              padding-top: 10px; 
+              margin-top: 10px;
+            }
+            .notes { 
+              margin-top: 30px; 
+              padding: 15px;
+              background: #f8f9fa;
+              border-radius: 5px;
+            }
+            .rupee { font-weight: bold; }
           </style>
         </head>
         <body>
           <div class="header">
             <div class="company-info">
-              <h2>${invoice.storeInfo.name}</h2>
-              <p>${invoice.storeInfo.address}</p>
-              <p>Phone: ${invoice.storeInfo.phone}</p>
-              <p>Email: ${invoice.storeInfo.email}</p>
-              ${invoice.storeInfo.taxId ? `<p>Tax ID: ${invoice.storeInfo.taxId}</p>` : ''}
+              <h2>${invoice.storeInfo.name || 'Your Store Name'}</h2>
+              <p>${invoice.storeInfo.address || ''}</p>
+              <p>Phone: ${invoice.storeInfo.phone || ''}</p>
+              <p>Email: ${invoice.storeInfo.email || ''}</p>
+              ${invoice.storeInfo.taxId ? `<p>GST/Tax ID: ${invoice.storeInfo.taxId}</p>` : ''}
+              ${invoice.storeInfo.website ? `<p>Website: ${invoice.storeInfo.website}</p>` : ''}
             </div>
             <div class="invoice-title">
               <h1>INVOICE</h1>
               <h2>${invoice.invoiceNumber}</h2>
-              <p>Date: ${invoice.date}</p>
-              <p>Due Date: ${invoice.dueDate}</p>
+              <p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-IN')}</p>
+              <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</p>
             </div>
           </div>
           
           <div class="customer-info">
-            <h3>Bill To:</h3>
+            <h3 style="margin-top: 0;">Bill To:</h3>
             <p><strong>${invoice.customerDetails.name}</strong></p>
             ${invoice.customerDetails.address ? `<p>${invoice.customerDetails.address}</p>` : ''}
             ${invoice.customerDetails.phone ? `<p>Phone: ${invoice.customerDetails.phone}</p>` : ''}
@@ -125,31 +203,49 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
           <table class="table">
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total</th>
+                <th>Item Description</th>
+                <th style="text-align: center; width: 80px;">Qty</th>
+                <th style="text-align: right; width: 100px;">Rate (₹)</th>
+                <th style="text-align: right; width: 100px;">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
               ${invoice.items.map(item => `
                 <tr>
-                  <td>${item.productName}</td>
-                  <td>${item.quantity}</td>
-                  <td>$${item.price.toFixed(2)}</td>
-                  <td>$${item.total.toFixed(2)}</td>
+                  <td>${item.finalName || `${item.productName} ${item.colorCode} ${item.volume}`.trim()}</td>
+                  <td style="text-align: center;">${item.quantity}</td>
+                  <td style="text-align: right;">₹${item.rate.toFixed(2)}</td>
+                  <td style="text-align: right;">₹${item.total.toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
           
-          <div class="total">
-            <p><strong>Subtotal: $${invoice.subtotal.toFixed(2)}</strong></p>
-            <p><strong>Tax: $${invoice.tax.toFixed(2)}</strong></p>
-            <p><strong>Total: $${invoice.total.toFixed(2)}</strong></p>
+          <div class="total-section">
+            <div class="total-row">
+              <div class="total-label">Subtotal:</div>
+              <div class="total-amount">₹${invoice.subtotal.toFixed(2)}</div>
+            </div>
+            <div class="total-row">
+              <div class="total-label">GST/Tax:</div>
+              <div class="total-amount">₹${invoice.tax.toFixed(2)}</div>
+            </div>
+            <div class="total-row final-total">
+              <div class="total-label">Total Amount:</div>
+              <div class="total-amount">₹${invoice.total.toFixed(2)}</div>
+            </div>
           </div>
           
-          ${invoice.notes ? `<div class="notes"><strong>Notes:</strong><br>${invoice.notes}</div>` : ''}
+          ${invoice.notes ? `
+            <div class="notes">
+              <h4 style="margin-top: 0;">Notes:</h4>
+              <p>${invoice.notes}</p>
+            </div>
+          ` : ''}
+          
+          <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #666;">
+            <p>Thank you for your business!</p>
+          </div>
         </body>
       </html>
     `;
@@ -235,17 +331,26 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                 <div className="space-y-2">
                   {selectedInvoice.items.map((item, index) => (
                     <div key={index} className="flex justify-between p-2 bg-gray-50 rounded">
-                      <span>{item.productName} (x{item.quantity})</span>
-                      <span>${item.total.toFixed(2)}</span>
+                      <span>{item.finalName} (x{item.quantity})</span>
+                      <span className="flex items-center">
+                        <IndianRupee className="h-4 w-4" />
+                        {item.total.toFixed(2)}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
               
               <div className="text-right space-y-1">
-                <p>Subtotal: ${selectedInvoice.subtotal.toFixed(2)}</p>
-                <p>Tax: ${selectedInvoice.tax.toFixed(2)}</p>
-                <p className="text-lg font-bold">Total: ${selectedInvoice.total.toFixed(2)}</p>
+                <p className="flex items-center justify-end">
+                  Subtotal: <IndianRupee className="h-4 w-4 ml-1" />{selectedInvoice.subtotal.toFixed(2)}
+                </p>
+                <p className="flex items-center justify-end">
+                  Tax: <IndianRupee className="h-4 w-4 ml-1" />{selectedInvoice.tax.toFixed(2)}
+                </p>
+                <p className="text-lg font-bold flex items-center justify-end">
+                  Total: <IndianRupee className="h-4 w-4 ml-1" />{selectedInvoice.total.toFixed(2)}
+                </p>
               </div>
               
               {selectedInvoice.notes && (
@@ -293,7 +398,10 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Amount:</span>
-                  <span className="font-semibold">${invoice.total.toFixed(2)}</span>
+                  <span className="font-semibold flex items-center">
+                    <IndianRupee className="h-4 w-4" />
+                    {invoice.total.toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Status:</span>
