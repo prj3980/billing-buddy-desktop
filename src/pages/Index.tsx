@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +22,7 @@ const Index = () => {
     setShowInvoiceBuilder(false);
   };
 
-  // Quick stats for dashboard
+  // Quick stats for dashboard - NO FINANCIAL DATA
   const getQuickStats = () => {
     const products = JSON.parse(localStorage.getItem('products') || '[]');
     const customers = JSON.parse(localStorage.getItem('customers') || '[]');
@@ -37,9 +36,8 @@ const Index = () => {
       totalInvoices: invoices.length,
       paidInvoices: paidInvoices.length,
       unpaidInvoices: unpaidInvoices.length,
-      totalRevenue: invoices.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0),
-      paidRevenue: paidInvoices.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0),
-      pendingRevenue: unpaidInvoices.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0)
+      draftInvoices: invoices.filter((inv: any) => inv.status === 'draft').length,
+      sentInvoices: invoices.filter((inv: any) => inv.status === 'sent').length
     };
   };
 
@@ -136,10 +134,9 @@ const Index = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Total Revenue</p>
-                      <p className="text-3xl font-bold text-orange-600">₹{stats.totalRevenue.toFixed(2)}</p>
-                      <p className="text-sm text-green-600">Collected: ₹{stats.paidRevenue.toFixed(2)}</p>
-                      <p className="text-sm text-red-600">Pending: ₹{stats.pendingRevenue.toFixed(2)}</p>
+                      <p className="text-sm font-medium text-gray-600 mb-1">Invoice Status</p>
+                      <p className="text-lg font-bold text-orange-600">Draft: {stats.draftInvoices}</p>
+                      <p className="text-lg font-bold text-blue-600">Sent: {stats.sentInvoices}</p>
                     </div>
                     <BarChart3 className="h-12 w-12 text-orange-600 opacity-80" />
                   </div>
@@ -183,22 +180,22 @@ const Index = () => {
               <Card className="bg-white shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-xl">Business Overview</CardTitle>
-                  <CardDescription>Recent business insights</CardDescription>
+                  <CardDescription>Invoice management insights</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
                       <div>
-                        <p className="font-semibold text-green-800">Revenue Collected</p>
-                        <p className="text-2xl font-bold text-green-600">₹{stats.paidRevenue.toFixed(2)}</p>
+                        <p className="font-semibold text-green-800">Paid Invoices</p>
+                        <p className="text-2xl font-bold text-green-600">{stats.paidInvoices}</p>
                       </div>
                       <TrendingUp className="h-8 w-8 text-green-600" />
                     </div>
                     
                     <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
                       <div>
-                        <p className="font-semibold text-orange-800">Pending Collection</p>
-                        <p className="text-2xl font-bold text-orange-600">₹{stats.pendingRevenue.toFixed(2)}</p>
+                        <p className="font-semibold text-orange-800">Pending Invoices</p>
+                        <p className="text-2xl font-bold text-orange-600">{stats.unpaidInvoices}</p>
                       </div>
                       <FileText className="h-8 w-8 text-orange-600" />
                     </div>

@@ -175,37 +175,102 @@ const Reports = () => {
     };
   };
 
+  const getBasicStats = () => {
+    // Only show basic counts, no financial data
+    return {
+      totalInvoices: invoices.length,
+      paidInvoices: invoices.filter(inv => inv.status === 'paid').length,
+      draftInvoices: invoices.filter(inv => inv.status === 'draft').length,
+      sentInvoices: invoices.filter(inv => inv.status === 'sent').length,
+    };
+  };
+
   if (!isAuthenticated) {
+    const basicStats = getBasicStats();
+    
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <CardTitle>Access Reports</CardTitle>
-            <CardDescription>Please enter password to access reports</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  required
-                />
-                {passwordError && (
-                  <p className="text-sm text-red-500 mt-1">{passwordError}</p>
-                )}
-              </div>
-              <Button type="submit" className="w-full">
-                Access Reports
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Reports & Analytics</h1>
+            <p className="text-muted-foreground">Track your business performance</p>
+          </div>
+        </div>
+
+        {/* Basic Stats - No Financial Data */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{basicStats.totalInvoices}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Paid Invoices</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{basicStats.paidInvoices}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Draft Invoices</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{basicStats.draftInvoices}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Sent Invoices</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{basicStats.sentInvoices}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Password Protected Section */}
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <CardTitle>Access Financial Reports</CardTitle>
+              <CardDescription>Revenue, detailed analytics, and financial data require password authentication</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    required
+                  />
+                  {passwordError && (
+                    <p className="text-sm text-red-500 mt-1">{passwordError}</p>
+                  )}
+                </div>
+                <Button type="submit" className="w-full">
+                  Access Financial Reports
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -240,6 +305,7 @@ const Reports = () => {
         </div>
       </div>
 
+      {/* Financial Stats - Password Protected */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -282,6 +348,7 @@ const Reports = () => {
         </Card>
       </div>
 
+      {/* Charts and Detailed Analytics - Password Protected */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
