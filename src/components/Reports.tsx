@@ -1,9 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, TrendingUp, DollarSign, FileText, Calendar } from "lucide-react";
+import { BarChart3, TrendingUp, DollarSign, FileText, Calendar, Lock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface Invoice {
@@ -21,6 +22,10 @@ interface Invoice {
 const Reports = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [reportPeriod, setReportPeriod] = useState('monthly');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showFakeData, setShowFakeData] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     const savedInvoices = localStorage.getItem('invoices');
@@ -29,17 +34,32 @@ const Reports = () => {
     }
   }, []);
 
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'Ankur07') {
+      setIsAuthenticated(true);
+      setShowFakeData(false);
+      setPasswordError('');
+    } else if (password === 'JMD123') {
+      setIsAuthenticated(true);
+      setShowFakeData(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Invalid password');
+    }
+  };
+
   const getRevenueData = () => {
+    if (showFakeData) return [];
+    
     const now = new Date();
     const filteredInvoices = invoices.filter(invoice => {
       const invoiceDate = new Date(invoice.date);
       
       if (reportPeriod === 'daily') {
-        // Last 7 days
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         return invoiceDate >= sevenDaysAgo;
       } else {
-        // Last 12 months
         const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
         return invoiceDate >= twelveMonthsAgo;
       }
@@ -90,6 +110,8 @@ const Reports = () => {
   };
 
   const getTopProducts = () => {
+    if (showFakeData) return [];
+    
     const productSales: { [key: string]: { quantity: number; revenue: number } } = {};
     
     invoices.forEach(invoice => {
@@ -109,6 +131,8 @@ const Reports = () => {
   };
 
   const getInvoiceStatusData = () => {
+    if (showFakeData) return [];
+    
     const statusCounts: { [key: string]: number } = {
       draft: 0,
       sent: 0,
@@ -127,6 +151,16 @@ const Reports = () => {
   };
 
   const getOverallStats = () => {
+    if (showFakeData) {
+      return {
+        totalRevenue: 0,
+        paidRevenue: 0,
+        averageInvoiceValue: 0,
+        totalInvoices: 0,
+        paidInvoices: 0
+      };
+    }
+    
     const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
     const paidInvoices = invoices.filter(inv => inv.status === 'paid');
     const paidRevenue = paidInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
@@ -140,6 +174,41 @@ const Reports = () => {
       paidInvoices: paidInvoices.length
     };
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <CardTitle>Access Reports</CardTitle>
+            <CardDescription>Please enter password to access reports</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  required
+                />
+                {passwordError && (
+                  <p className="text-sm text-red-500 mt-1">{passwordError}</p>
+                )}
+              </div>
+              <Button type="submit" className="w-full">
+                Access Reports
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const revenueData = getRevenueData();
   const topProducts = getTopProducts();
@@ -155,15 +224,20 @@ const Reports = () => {
           <h1 className="text-3xl font-bold">Reports & Analytics</h1>
           <p className="text-muted-foreground">Track your business performance</p>
         </div>
-        <Select value={reportPeriod} onValueChange={setReportPeriod}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="daily">Last 7 Days</SelectItem>
-            <SelectItem value="monthly">Last 12 Months</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select value={reportPeriod} onValueChange={setReportPeriod}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">Last 7 Days</SelectItem>
+              <SelectItem value="monthly">Last 12 Months</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => setIsAuthenticated(false)}>
+            Logout
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -173,7 +247,7 @@ const Reports = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₹{stats.totalRevenue.toFixed(2)}</div>
           </CardContent>
         </Card>
 
@@ -183,7 +257,7 @@ const Reports = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.paidRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₹{stats.paidRevenue.toFixed(2)}</div>
           </CardContent>
         </Card>
 
@@ -203,7 +277,7 @@ const Reports = () => {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.averageInvoiceValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₹{stats.averageInvoiceValue.toFixed(2)}</div>
           </CardContent>
         </Card>
       </div>
@@ -222,7 +296,7 @@ const Reports = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="period" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']} />
+                <Tooltip formatter={(value) => [`₹${Number(value).toFixed(2)}`, 'Revenue']} />
                 <Bar dataKey="revenue" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>
@@ -277,7 +351,7 @@ const Reports = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">${product.revenue.toFixed(2)}</p>
+                    <p className="font-semibold">₹{product.revenue.toFixed(2)}</p>
                     <p className="text-sm text-muted-foreground">Revenue</p>
                   </div>
                 </div>
@@ -285,7 +359,7 @@ const Reports = () => {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No sales data available yet. Create some invoices to see reports.
+              {showFakeData ? 'No data available' : 'No sales data available yet. Create some invoices to see reports.'}
             </div>
           )}
         </CardContent>

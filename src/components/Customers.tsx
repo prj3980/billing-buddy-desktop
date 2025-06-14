@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 interface Customer {
   id: string;
   name: string;
-  email: string;
   phone: string;
   address: string;
   company: string;
@@ -22,7 +21,6 @@ const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     phone: '',
     address: '',
     company: ''
@@ -44,10 +42,10 @@ const Customers = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email) {
+    if (!formData.name || !formData.phone) {
       toast({
         title: "Error",
-        description: "Name and email are required fields.",
+        description: "Name and phone are required fields.",
         variant: "destructive",
       });
       return;
@@ -56,7 +54,6 @@ const Customers = () => {
     const customerData: Customer = {
       id: editingCustomer?.id || Date.now().toString(),
       name: formData.name,
-      email: formData.email,
       phone: formData.phone,
       address: formData.address,
       company: formData.company,
@@ -84,7 +81,6 @@ const Customers = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      email: '',
       phone: '',
       address: '',
       company: ''
@@ -96,7 +92,6 @@ const Customers = () => {
   const handleEdit = (customer: Customer) => {
     setFormData({
       name: customer.name,
-      email: customer.email,
       phone: customer.phone,
       address: customer.address,
       company: customer.company
@@ -149,23 +144,13 @@ const Customers = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    placeholder="Enter email address"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">Phone Number *</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     placeholder="Enter phone number"
+                    required
                   />
                 </div>
                 <div>
@@ -177,15 +162,15 @@ const Customers = () => {
                     placeholder="Enter company name"
                   />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  placeholder="Enter full address"
-                />
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    placeholder="Enter address"
+                  />
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button type="submit">
@@ -200,46 +185,50 @@ const Customers = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {customers.map((customer) => (
-          <Card key={customer.id}>
-            <CardHeader>
+          <Card key={customer.id} className="relative">
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <Users className="h-6 w-6 text-primary" />
-                <div className="flex gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <div className="flex gap-1">
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
                     onClick={() => handleEdit(customer)}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3 w-3" />
                   </Button>
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
                     onClick={() => handleDelete(customer.id)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
-              <CardTitle className="text-lg">{customer.name}</CardTitle>
-              <CardDescription>{customer.company}</CardDescription>
+              <div>
+                <CardTitle className="text-base leading-tight">{customer.name}</CardTitle>
+                {customer.company && (
+                  <CardDescription className="text-xs">{customer.company}</CardDescription>
+                )}
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Email:</span>
-                  <span className="text-sm truncate">{customer.email}</span>
+            <CardContent className="pt-0">
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Phone:</span>
+                  <span className="text-xs font-mono">{customer.phone}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Phone:</span>
-                  <span className="text-sm">{customer.phone || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Address:</span>
-                  <span className="text-sm truncate">{customer.address || 'N/A'}</span>
-                </div>
+                {customer.address && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs text-muted-foreground">Address:</span>
+                    <span className="text-xs text-right max-w-[120px] truncate">{customer.address}</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
