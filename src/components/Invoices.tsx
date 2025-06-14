@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ interface Invoice {
     name: string;
     phone: string;
     address: string;
+    email?: string;
   };
   storeInfo: {
     name: string;
@@ -196,6 +198,8 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
             .status-paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
             .status-unpaid { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
             .status-draft { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+            .status-sent { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+            .status-overdue { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
             .header { 
               display: flex; 
               justify-content: space-between; 
@@ -304,6 +308,7 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
             <p><strong>${invoice.customerDetails.name}</strong></p>
             ${invoice.customerDetails.address ? `<p>${invoice.customerDetails.address}</p>` : ''}
             ${invoice.customerDetails.phone ? `<p>Phone: ${invoice.customerDetails.phone}</p>` : ''}
+            ${invoice.customerDetails.email ? `<p>Email: ${invoice.customerDetails.email}</p>` : ''}
           </div>
           
           <table class="table">

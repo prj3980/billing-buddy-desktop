@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Monitor, Smartphone, Download, Chrome, Firefox, Safari } from "lucide-react";
+import { Monitor, Smartphone, Download, Chrome, Globe } from "lucide-react";
 
 const DesktopGuide = () => {
   return (
@@ -60,7 +60,7 @@ const DesktopGuide = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Firefox className="h-5 w-5" />
+                <Globe className="h-5 w-5" />
                 Mozilla Firefox
               </CardTitle>
             </CardHeader>
