@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Save, X, IndianRupee } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,7 +16,10 @@ interface Product {
   basePrice?: number;
   category: string;
   hasVariableColors: boolean;
+  predefinedColors?: string[];
+  volumes?: string[];
   stockQuantity?: number;
+  unit: 'liters' | 'kg' | 'pieces';
 }
 
 const Products: React.FC = () => {
@@ -28,7 +32,10 @@ const Products: React.FC = () => {
     basePrice: undefined,
     category: '',
     hasVariableColors: false,
-    stockQuantity: undefined
+    predefinedColors: [],
+    volumes: [],
+    stockQuantity: undefined,
+    unit: 'liters'
   });
   const { toast } = useToast();
 
@@ -72,7 +79,10 @@ const Products: React.FC = () => {
       basePrice: undefined,
       category: '',
       hasVariableColors: false,
-      stockQuantity: undefined
+      predefinedColors: [],
+      volumes: [],
+      stockQuantity: undefined,
+      unit: 'liters'
     });
     setShowForm(false);
     setEditingProduct(null);
@@ -86,7 +96,10 @@ const Products: React.FC = () => {
       basePrice: product.basePrice,
       category: product.category,
       hasVariableColors: product.hasVariableColors,
-      stockQuantity: product.stockQuantity
+      predefinedColors: product.predefinedColors || [],
+      volumes: product.volumes || [],
+      stockQuantity: product.stockQuantity,
+      unit: product.unit || 'liters'
     });
     setShowForm(true);
   };
@@ -141,6 +154,19 @@ const Products: React.FC = () => {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="unit">Unit of Measurement *</Label>
+                  <Select value={formData.unit} onValueChange={(value: 'liters' | 'kg' | 'pieces') => setFormData({...formData, unit: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="liters">Liters</SelectItem>
+                      <SelectItem value="kg">Kilograms</SelectItem>
+                      <SelectItem value="pieces">Pieces</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label htmlFor="basePrice">Base Price (₹) - Optional</Label>
                   <Input
                     id="basePrice"
@@ -182,6 +208,30 @@ const Products: React.FC = () => {
                 />
                 <Label htmlFor="hasVariableColors">Has variable colors/codes</Label>
               </div>
+              
+              {formData.hasVariableColors && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="predefinedColors">Predefined Colors (comma separated)</Label>
+                    <Input
+                      id="predefinedColors"
+                      value={formData.predefinedColors?.join(', ') || ''}
+                      onChange={(e) => setFormData({...formData, predefinedColors: e.target.value.split(',').map(c => c.trim()).filter(c => c)})}
+                      placeholder="Red, Blue, Green"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="volumes">Available Volumes (comma separated)</Label>
+                    <Input
+                      id="volumes"
+                      value={formData.volumes?.join(', ') || ''}
+                      onChange={(e) => setFormData({...formData, volumes: e.target.value.split(',').map(v => v.trim()).filter(v => v)})}
+                      placeholder="1L, 4L, 20L"
+                    />
+                  </div>
+                </div>
+              )}
+              
               <div className="flex gap-2">
                 <Button type="submit">
                   <Save className="h-4 w-4 mr-2" />
@@ -214,10 +264,10 @@ const Products: React.FC = () => {
                     {product.basePrice ? (
                       <span className="flex items-center">
                         <IndianRupee className="h-4 w-4" />
-                        {product.basePrice.toFixed(2)}
+                        {product.basePrice.toFixed(2)} per {product.unit}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">Variable pricing</span>
+                      <span className="text-muted-foreground">Variable pricing per {product.unit}</span>
                     )}
                   </span>
                   {product.hasVariableColors && (
@@ -227,7 +277,7 @@ const Products: React.FC = () => {
                   )}
                 </div>
                 {product.stockQuantity && (
-                  <p className="text-sm text-muted-foreground">Stock: {product.stockQuantity}</p>
+                  <p className="text-sm text-muted-foreground">Stock: {product.stockQuantity} {product.unit}</p>
                 )}
                 <div className="flex gap-2 mt-4">
                   <Button size="sm" variant="outline" onClick={() => handleEdit(product)}>

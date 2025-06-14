@@ -29,14 +29,14 @@ const StoreSettings: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const savedStoreInfo = localStorage.getItem('storeInfo');
+    const savedStoreInfo = localStorage.getItem('storeSettings');
     if (savedStoreInfo) {
       setStoreInfo(JSON.parse(savedStoreInfo));
     }
   }, []);
 
   const handleSave = () => {
-    localStorage.setItem('storeInfo', JSON.stringify(storeInfo));
+    localStorage.setItem('storeSettings', JSON.stringify(storeInfo));
     toast({
       title: "Success",
       description: "Store information saved successfully!",
@@ -81,7 +81,7 @@ const StoreSettings: React.FC = () => {
                 id="phone"
                 value={storeInfo.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="+1 (555) 123-4567"
+                placeholder="+91 98765 43210"
               />
             </div>
             <div>
@@ -109,7 +109,7 @@ const StoreSettings: React.FC = () => {
                 id="taxId"
                 value={storeInfo.taxId}
                 onChange={(e) => handleInputChange('taxId', e.target.value)}
-                placeholder="123456789"
+                placeholder="27AAACT2727Q1ZZ"
               />
             </div>
           </div>
@@ -119,7 +119,7 @@ const StoreSettings: React.FC = () => {
               id="address"
               value={storeInfo.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
-              placeholder="123 Business St, City, State, ZIP"
+              placeholder="123 Business St, City, State, PIN"
               rows={3}
             />
           </div>

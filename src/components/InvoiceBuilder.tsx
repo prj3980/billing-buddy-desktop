@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ interface Product {
   hasVariableColors: boolean;
   predefinedColors?: string[];
   volumes?: string[];
+  unit: 'liters' | 'kg' | 'pieces';
 }
 
 interface InvoiceItem {
@@ -27,6 +29,7 @@ interface InvoiceItem {
   quantity: number;
   rate: number;
   total: number;
+  unit: string;
 }
 
 interface InvoiceBuilderProps {
@@ -38,9 +41,28 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const { toast } = useToast();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>('');
+  const [customColorCode, setCustomColorCode] = useState<string>('');
   const [selectedVolume, setSelectedVolume] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [rate, setRate] = useState<number>(0);
+
+  // Generate invoice number in ddmmyy + 3-digit sequence format
+  const generateInvoiceNumber = () => {
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = String(today.getFullYear()).slice(-2);
+    const datePrefix = `${day}${month}${year}`;
+    
+    // Get existing invoices for today
+    const existingInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    const todayInvoices = existingInvoices.filter((inv: any) => 
+      inv.invoiceNumber.startsWith(datePrefix)
+    );
+    
+    const sequenceNumber = String(todayInvoices.length + 1).padStart(3, '0');
+    return `${datePrefix}${sequenceNumber}`;
+  };
 
   useEffect(() => {
     // Load products from local storage
@@ -51,7 +73,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   }, []);
 
   const [invoiceData, setInvoiceData] = useState({
-    invoiceNumber: `INV-${Date.now()}`,
+    invoiceNumber: generateInvoiceNumber(),
     date: new Date().toISOString().split('T')[0],
     customerDetails: {
       name: '',
@@ -94,20 +116,25 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
     const product = products.find(p => p.id === selectedProduct);
     if (!product) return;
 
+    // Use custom color code if provided, otherwise use selected predefined color
+    const finalColorCode = customColorCode || selectedColor;
+    
     const newItem: InvoiceItem = {
       id: `item_${Date.now()}`,
       productName: product.name,
-      colorCode: selectedColor,
+      colorCode: finalColorCode,
       volume: selectedVolume,
-      finalName: `${product.name} ${selectedColor} ${selectedVolume}`.trim(),
+      finalName: `${product.name} ${finalColorCode} ${selectedVolume}`.trim(),
       quantity: quantity,
       rate: rate,
       total: quantity * rate,
+      unit: product.unit,
     };
 
     setInvoiceData(prev => ({ ...prev, items: [...prev.items, newItem] }));
     setSelectedProduct(null);
     setSelectedColor('');
+    setCustomColorCode('');
     setSelectedVolume('');
     setQuantity(1);
     setRate(0);
@@ -184,6 +211,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   };
 
   const { subtotal, tax, total } = calculateTotals();
+  const selectedProductData = products.find(p => p.id === selectedProduct);
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -323,25 +351,39 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                 </Select>
               </div>
 
-              {selectedProduct && products.find(p => p.id === selectedProduct)?.hasVariableColors && (
-                <div>
-                  <Label htmlFor="color">Color</Label>
-                  <Select onValueChange={setSelectedColor}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select color" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.find(p => p.id === selectedProduct)?.predefinedColors?.map((color, index) => (
-                        <SelectItem key={index} value={color}>
-                          {color}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {selectedProductData?.hasVariableColors && (
+                <>
+                  {selectedProductData.predefinedColors && selectedProductData.predefinedColors.length > 0 && (
+                    <div>
+                      <Label htmlFor="color">Predefined Color</Label>
+                      <Select onValueChange={setSelectedColor} value={selectedColor}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select predefined color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedProductData.predefinedColors.map((color, index) => (
+                            <SelectItem key={index} value={color}>
+                              {color}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Label htmlFor="customColor">Custom Color Code</Label>
+                    <Input
+                      id="customColor"
+                      value={customColorCode}
+                      onChange={(e) => setCustomColorCode(e.target.value)}
+                      placeholder="Enter custom color code"
+                    />
+                  </div>
+                </>
               )}
 
-              {selectedProduct && products.find(p => p.id === selectedProduct)?.volumes && (
+              {selectedProductData?.volumes && selectedProductData.volumes.length > 0 && (
                 <div>
                   <Label htmlFor="volume">Volume</Label>
                   <Select onValueChange={setSelectedVolume}>
@@ -349,7 +391,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                       <SelectValue placeholder="Select volume" />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.find(p => p.id === selectedProduct)?.volumes?.map((volume, index) => (
+                      {selectedProductData.volumes.map((volume, index) => (
                         <SelectItem key={index} value={volume}>
                           {volume}
                         </SelectItem>
@@ -363,7 +405,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             {/* Quantity and Rate */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="quantity">Quantity</Label>
+                <Label htmlFor="quantity">Quantity {selectedProductData && `(${selectedProductData.unit})`}</Label>
                 <Input
                   id="quantity"
                   type="number"
@@ -373,7 +415,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                 />
               </div>
               <div>
-                <Label htmlFor="rate">Rate</Label>
+                <Label htmlFor="rate">Rate per {selectedProductData?.unit || 'unit'}</Label>
                 <Input
                   id="rate"
                   type="number"
@@ -427,6 +469,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                               onChange={(e) => handleUpdateItem(item.id, 'quantity', Number(e.target.value))}
                               className="w-20"
                             />
+                            <span className="text-xs text-gray-500 ml-1">{item.unit}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Input
