@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, ArrowLeft, IndianRupee } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,7 @@ interface InvoiceBuilderProps {
 
 const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [gstEnabled, setGstEnabled] = useState<boolean>(false);
   const { toast } = useToast();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -77,7 +78,6 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
     date: new Date().toISOString().split('T')[0],
     customerDetails: {
       name: '',
-      email: '',
       phone: '',
       address: ''
     },
@@ -160,7 +160,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
 
   const calculateTotals = () => {
     const subtotal = invoiceData.items.reduce((sum, item) => sum + item.total, 0);
-    const tax = subtotal * 0.18; // 18% GST
+    const tax = gstEnabled ? subtotal * 0.18 : 0; // 18% GST only if enabled
     const total = subtotal + tax;
     return { subtotal, tax, total };
   };
@@ -196,6 +196,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
       subtotal,
       tax,
       total,
+      gstEnabled,
       status
     };
     
@@ -262,6 +263,14 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                 />
               </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="gst-enabled"
+                checked={gstEnabled}
+                onCheckedChange={setGstEnabled}
+              />
+              <Label htmlFor="gst-enabled">Enable GST</Label>
+            </div>
           </CardContent>
         </Card>
 
@@ -297,32 +306,17 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="customerEmail">Email</Label>
-                <Input
-                  id="customerEmail"
-                  type="email"
-                  value={invoiceData.customerDetails.email}
-                  onChange={(e) => setInvoiceData(prev => ({
-                    ...prev,
-                    customerDetails: { ...prev.customerDetails, email: e.target.value }
-                  }))}
-                  placeholder="Enter email address"
-                />
-              </div>
-              <div>
-                <Label htmlFor="customerAddress">Address</Label>
-                <Input
-                  id="customerAddress"
-                  value={invoiceData.customerDetails.address}
-                  onChange={(e) => setInvoiceData(prev => ({
-                    ...prev,
-                    customerDetails: { ...prev.customerDetails, address: e.target.value }
-                  }))}
-                  placeholder="Enter address"
-                />
-              </div>
+            <div>
+              <Label htmlFor="customerAddress">Address</Label>
+              <Input
+                id="customerAddress"
+                value={invoiceData.customerDetails.address}
+                onChange={(e) => setInvoiceData(prev => ({
+                  ...prev,
+                  customerDetails: { ...prev.customerDetails, address: e.target.value }
+                }))}
+                placeholder="Enter address"
+              />
             </div>
           </CardContent>
         </Card>
@@ -334,7 +328,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Add Item Form */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="product">Product</Label>
                 <Select onValueChange={(value) => setSelectedProduct(value)}>
@@ -402,8 +396,8 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               )}
             </div>
 
-            {/* Quantity and Rate */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Quantity, Rate, and Total */}
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="quantity">Quantity {selectedProductData && `(${selectedProductData.unit})`}</Label>
                 <Input
@@ -424,12 +418,20 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                   placeholder="Enter rate"
                 />
               </div>
+              <div>
+                <Label>Total</Label>
+                <div className="flex items-center h-10 px-3 py-2 border border-input bg-muted rounded-md">
+                  <IndianRupee className="h-4 w-4 mr-1" />
+                  {(quantity * rate).toFixed(2)}
+                </div>
+              </div>
+              <div className="flex items-end">
+                <Button onClick={handleAddItem} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Item
+                </Button>
+              </div>
             </div>
-
-            <Button onClick={handleAddItem} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
 
             {/* Display Items */}
             {invoiceData.items.length > 0 && (
@@ -518,13 +520,15 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                   {subtotal.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span>GST (18%):</span>
-                <span className="flex items-center">
-                  <IndianRupee className="h-4 w-4" />
-                  {tax.toFixed(2)}
-                </span>
-              </div>
+              {gstEnabled && (
+                <div className="flex justify-between">
+                  <span>GST (18%):</span>
+                  <span className="flex items-center">
+                    <IndianRupee className="h-4 w-4" />
+                    {tax.toFixed(2)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
                 <span className="flex items-center">

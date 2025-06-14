@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Save, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,7 +14,6 @@ interface StoreInfo {
   phone: string;
   taxId: string;
   website: string;
-  gstEnabled: boolean;
 }
 
 const StoreSettings: React.FC = () => {
@@ -24,8 +22,7 @@ const StoreSettings: React.FC = () => {
     address: '',
     phone: '',
     taxId: '',
-    website: '',
-    gstEnabled: false
+    website: ''
   });
   const { toast } = useToast();
 
@@ -33,10 +30,7 @@ const StoreSettings: React.FC = () => {
     const savedStoreInfo = localStorage.getItem('storeSettings');
     if (savedStoreInfo) {
       const parsed = JSON.parse(savedStoreInfo);
-      setStoreInfo({
-        ...parsed,
-        gstEnabled: parsed.gstEnabled || false
-      });
+      setStoreInfo(parsed);
     }
   }, []);
 
@@ -48,7 +42,7 @@ const StoreSettings: React.FC = () => {
     });
   };
 
-  const handleInputChange = (field: keyof StoreInfo, value: string | boolean) => {
+  const handleInputChange = (field: keyof StoreInfo, value: string) => {
     setStoreInfo(prev => ({ ...prev, [field]: value }));
   };
 
@@ -105,7 +99,6 @@ const StoreSettings: React.FC = () => {
                 value={storeInfo.taxId}
                 onChange={(e) => handleInputChange('taxId', e.target.value)}
                 placeholder="27AAACT2727Q1ZZ"
-                disabled={!storeInfo.gstEnabled}
               />
             </div>
           </div>
@@ -118,14 +111,6 @@ const StoreSettings: React.FC = () => {
               placeholder="123 Business St, City, State, PIN"
               rows={3}
             />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="gst-enabled"
-              checked={storeInfo.gstEnabled}
-              onCheckedChange={(checked) => handleInputChange('gstEnabled', checked)}
-            />
-            <Label htmlFor="gst-enabled">Enable GST</Label>
           </div>
           <Button onClick={handleSave} className="w-full">
             <Save className="h-4 w-4 mr-2" />
