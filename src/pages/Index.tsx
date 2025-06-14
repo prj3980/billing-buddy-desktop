@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,18 +27,10 @@ const Index = () => {
   const getQuickStats = () => {
     const products = JSON.parse(localStorage.getItem('products') || '[]');
     const customers = JSON.parse(localStorage.getItem('customers') || '[]');
-    const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    const paidInvoices = invoices.filter((inv: any) => inv.status === 'paid');
-    const unpaidInvoices = invoices.filter((inv: any) => inv.status !== 'paid');
     
     return {
       totalProducts: products.length,
-      totalCustomers: customers.length,
-      totalInvoices: invoices.length,
-      paidInvoices: paidInvoices.length,
-      unpaidInvoices: unpaidInvoices.length,
-      draftInvoices: invoices.filter((inv: any) => inv.status === 'draft').length,
-      sentInvoices: invoices.filter((inv: any) => inv.status === 'sent').length
+      totalCustomers: customers.length
     };
   };
 
@@ -92,7 +85,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -116,100 +109,39 @@ const Index = () => {
                   </div>
                 </CardContent>
               </Card>
-              
-              <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Total Invoices</p>
-                      <p className="text-3xl font-bold text-purple-600">{stats.totalInvoices}</p>
-                      <p className="text-sm text-gray-500">Paid: {stats.paidInvoices} | Unpaid: {stats.unpaidInvoices}</p>
-                    </div>
-                    <FileText className="h-12 w-12 text-purple-600 opacity-80" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Invoice Status</p>
-                      <p className="text-lg font-bold text-orange-600">Draft: {stats.draftInvoices}</p>
-                      <p className="text-lg font-bold text-blue-600">Sent: {stats.sentInvoices}</p>
-                    </div>
-                    <BarChart3 className="h-12 w-12 text-orange-600 opacity-80" />
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-xl">Quick Actions</CardTitle>
-                  <CardDescription>Common tasks and operations</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-4">
-                    <Button onClick={handleCreateInvoice} className="h-16 flex items-center justify-start gap-4 text-left bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200">
-                      <Plus className="h-8 w-8" />
-                      <div>
-                        <div className="font-semibold">Create Invoice</div>
-                        <div className="text-sm opacity-70">Generate new invoice for customer</div>
-                      </div>
-                    </Button>
-                    <Button onClick={() => setActiveTab("products")} variant="outline" className="h-16 flex items-center justify-start gap-4 text-left">
-                      <Palette className="h-8 w-8 text-purple-600" />
-                      <div>
-                        <div className="font-semibold">Manage Products</div>
-                        <div className="text-sm opacity-70">Add or edit paint products</div>
-                      </div>
-                    </Button>
-                    <Button onClick={() => setActiveTab("customers")} variant="outline" className="h-16 flex items-center justify-start gap-4 text-left">
-                      <Users className="h-8 w-8 text-green-600" />
-                      <div>
-                        <div className="font-semibold">Manage Customers</div>
-                        <div className="text-sm opacity-70">Add or edit customer information</div>
-                      </div>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-xl">Business Overview</CardTitle>
-                  <CardDescription>Invoice management insights</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                      <div>
-                        <p className="font-semibold text-green-800">Paid Invoices</p>
-                        <p className="text-2xl font-bold text-green-600">{stats.paidInvoices}</p>
-                      </div>
-                      <TrendingUp className="h-8 w-8 text-green-600" />
+            <Card className="bg-white shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">Quick Actions</CardTitle>
+                <CardDescription>Common tasks and operations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4">
+                  <Button onClick={handleCreateInvoice} className="h-16 flex items-center justify-start gap-4 text-left bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200">
+                    <Plus className="h-8 w-8" />
+                    <div>
+                      <div className="font-semibold">Create Invoice</div>
+                      <div className="text-sm opacity-70">Generate new invoice for customer</div>
                     </div>
-                    
-                    <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-                      <div>
-                        <p className="font-semibold text-orange-800">Pending Invoices</p>
-                        <p className="text-2xl font-bold text-orange-600">{stats.unpaidInvoices}</p>
-                      </div>
-                      <FileText className="h-8 w-8 text-orange-600" />
+                  </Button>
+                  <Button onClick={() => setActiveTab("products")} variant="outline" className="h-16 flex items-center justify-start gap-4 text-left">
+                    <Palette className="h-8 w-8 text-purple-600" />
+                    <div>
+                      <div className="font-semibold">Manage Products</div>
+                      <div className="text-sm opacity-70">Add or edit paint products</div>
                     </div>
-
-                    <div className="text-center pt-4">
-                      <Button onClick={() => setActiveTab("reports")} variant="outline" className="w-full">
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        View Detailed Reports
-                      </Button>
+                  </Button>
+                  <Button onClick={() => setActiveTab("customers")} variant="outline" className="h-16 flex items-center justify-start gap-4 text-left">
+                    <Users className="h-8 w-8 text-green-600" />
+                    <div>
+                      <div className="font-semibold">Manage Customers</div>
+                      <div className="text-sm opacity-70">Add or edit customer information</div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="products" className="mt-0">
