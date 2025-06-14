@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,19 +66,117 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
     return `${datePrefix}${sequenceNumber}`;
   };
 
+  const generateWatermarkId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
   const [invoiceData, setInvoiceData] = useState({
     invoiceNumber: generateInvoiceNumber(),
     date: new Date().toISOString().split('T')[0],
     customerDetails: { name: '', phone: '', address: '' },
     items: [] as InvoiceItem[],
-    notes: ''
+    notes: '',
+    watermarkId: generateWatermarkId()
   });
 
-  useEffect(() => {
+  const initializeAsianPaintsProducts = () => {
+    const asianPaintsProducts = [
+      {
+        id: 'ap_royale_luxury',
+        name: 'Royale Luxury Emulsion',
+        basePrice: 4500,
+        hasVariableColors: true,
+        predefinedColors: ['White', 'Cream', 'Ivory', 'Pearl White', 'Off White', 'Magnolia'],
+        volumes: ['1L', '4L', '10L', '20L'],
+        unit: 'liters' as const
+      },
+      {
+        id: 'ap_apex_ultima',
+        name: 'Apex Ultima Exterior',
+        basePrice: 3800,
+        hasVariableColors: true,
+        predefinedColors: ['White', 'Cream', 'Light Grey', 'Beige', 'Yellow', 'Blue'],
+        volumes: ['1L', '4L', '10L', '20L'],
+        unit: 'liters' as const
+      },
+      {
+        id: 'ap_tractor_emulsion',
+        name: 'Tractor Emulsion',
+        basePrice: 2200,
+        hasVariableColors: true,
+        predefinedColors: ['White', 'Cream', 'Light Pink', 'Light Blue', 'Light Green'],
+        volumes: ['1L', '4L', '10L', '20L'],
+        unit: 'liters' as const
+      },
+      {
+        id: 'ap_ace_exterior',
+        name: 'Ace Exterior Emulsion',
+        basePrice: 2800,
+        hasVariableColors: true,
+        predefinedColors: ['White', 'Cream', 'Ivory', 'Light Grey', 'Beige'],
+        volumes: ['1L', '4L', '10L', '20L'],
+        unit: 'liters' as const
+      },
+      {
+        id: 'ap_royale_health',
+        name: 'Royale Health Shield',
+        basePrice: 5200,
+        hasVariableColors: true,
+        predefinedColors: ['White', 'Cream', 'Light Pink', 'Light Blue', 'Light Yellow'],
+        volumes: ['1L', '4L', '10L'],
+        unit: 'liters' as const
+      },
+      {
+        id: 'ap_smart_care',
+        name: 'SmartCare Dampshield',
+        basePrice: 3200,
+        hasVariableColors: true,
+        predefinedColors: ['White', 'Cream', 'Off White'],
+        volumes: ['1L', '4L', '10L', '20L'],
+        unit: 'liters' as const
+      },
+      {
+        id: 'ap_primer',
+        name: 'Asian Paints Primer',
+        basePrice: 1800,
+        hasVariableColors: false,
+        predefinedColors: ['White'],
+        volumes: ['1L', '4L', '10L', '20L'],
+        unit: 'liters' as const
+      },
+      {
+        id: 'ap_wood_finish',
+        name: 'Woodtech Wood Finish',
+        basePrice: 2600,
+        hasVariableColors: true,
+        predefinedColors: ['Natural', 'Teak', 'Mahogany', 'Walnut', 'Cherry'],
+        volumes: ['500ml', '1L', '4L'],
+        unit: 'liters' as const
+      }
+    ];
+
     const savedProducts = localStorage.getItem('products');
-    if (savedProducts) {
-      setProducts(JSON.parse(savedProducts));
-    }
+    const existingProducts = savedProducts ? JSON.parse(savedProducts) : [];
+    
+    // Add Asian Paints products if they don't exist
+    const updatedProducts = [...existingProducts];
+    asianPaintsProducts.forEach(newProduct => {
+      if (!existingProducts.find((p: Product) => p.id === newProduct.id)) {
+        updatedProducts.push(newProduct);
+      }
+    });
+    
+    localStorage.setItem('products', JSON.stringify(updatedProducts));
+    setProducts(updatedProducts);
+  };
+
+  useEffect(() => {
+    initializeAsianPaintsProducts();
   }, []);
 
   const handleAddItem = () => {
@@ -182,7 +279,8 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
       tax,
       total,
       gstEnabled,
-      status
+      status,
+      watermarkId: invoiceData.watermarkId
     };
     
     savedInvoices.push(newInvoice);
@@ -200,25 +298,30 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const selectedProductData = products.find(p => p.id === selectedProduct);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+        <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-lg">
           <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={onClose}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+            <Button variant="outline" onClick={onClose} size="lg">
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to Invoices
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">Create Invoice</h1>
-              <p className="text-gray-600">Invoice #{invoiceData.invoiceNumber}</p>
+              <h1 className="text-3xl font-bold text-gray-900">Create Invoice</h1>
+              <div className="flex items-center gap-4 mt-2">
+                <p className="text-gray-600">Invoice #{invoiceData.invoiceNumber}</p>
+                <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                  ID: {invoiceData.watermarkId}
+                </span>
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleSaveInvoice('draft')}>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => handleSaveInvoice('draft')} size="lg">
               Save Draft
             </Button>
-            <Button onClick={() => handleSaveInvoice('sent')}>
+            <Button onClick={() => handleSaveInvoice('sent')} size="lg" className="bg-blue-600 hover:bg-blue-700">
               Create Invoice
             </Button>
           </div>
@@ -246,15 +349,15 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
         />
 
         {/* Items Section */}
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Add Items</CardTitle>
+            <CardTitle className="text-xl">Add Items</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             {/* Add Item Form */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
               <div>
-                <Label>Product *</Label>
+                <Label className="text-sm font-semibold">Product *</Label>
                 <Select value={selectedProduct} onValueChange={setSelectedProduct}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select product" />
@@ -270,29 +373,31 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               </div>
 
               <div>
-                <Label>Quantity * ({selectedProductData?.unit || 'unit'})</Label>
+                <Label className="text-sm font-semibold">Quantity * ({selectedProductData?.unit || 'unit'})</Label>
                 <Input
                   type="number"
                   value={quantity}
                   onChange={(e) => setQuantity(Number(e.target.value))}
                   min="1"
+                  className="text-center"
                 />
               </div>
 
               <div>
-                <Label>Rate *</Label>
+                <Label className="text-sm font-semibold">Rate *</Label>
                 <Input
                   type="number"
                   value={rate}
                   onChange={(e) => setRate(Number(e.target.value))}
                   min="0"
                   step="0.01"
+                  placeholder="0.00"
                 />
               </div>
 
               <div>
-                <Label>Total</Label>
-                <div className="flex items-center h-10 px-3 py-2 border bg-gray-50 rounded-md">
+                <Label className="text-sm font-semibold">Total</Label>
+                <div className="flex items-center h-10 px-3 py-2 border bg-white rounded-md font-semibold">
                   <IndianRupee className="h-4 w-4 mr-1" />
                   {(quantity * rate).toFixed(2)}
                 </div>
@@ -301,10 +406,10 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
 
             {/* Color and Volume Options */}
             {selectedProductData?.hasVariableColors && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
                 {selectedProductData.predefinedColors && selectedProductData.predefinedColors.length > 0 && (
                   <div>
-                    <Label>Predefined Color</Label>
+                    <Label className="text-sm font-semibold">Predefined Color</Label>
                     <Select value={selectedColor} onValueChange={setSelectedColor}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select color" />
@@ -320,7 +425,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                   </div>
                 )}
                 <div>
-                  <Label>Custom Color Code</Label>
+                  <Label className="text-sm font-semibold">Custom Color Code</Label>
                   <Input
                     value={customColorCode}
                     onChange={(e) => setCustomColorCode(e.target.value)}
@@ -331,10 +436,10 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             )}
 
             {selectedProductData?.volumes && selectedProductData.volumes.length > 0 && (
-              <div>
-                <Label>Volume</Label>
+              <div className="max-w-md">
+                <Label className="text-sm font-semibold">Volume</Label>
                 <Select value={selectedVolume} onValueChange={setSelectedVolume}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select volume" />
                   </SelectTrigger>
                   <SelectContent>
@@ -348,33 +453,39 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               </div>
             )}
 
-            <Button onClick={handleAddItem} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
+            <Button onClick={handleAddItem} className="w-full bg-green-600 hover:bg-green-700 text-lg py-3">
+              <Plus className="h-5 w-5 mr-2" />
+              Add Item to Invoice
             </Button>
 
             {/* Items List */}
             {invoiceData.items.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-semibold">Items Added:</h4>
-                <div className="space-y-2">
+              <div className="space-y-3">
+                <h4 className="font-semibold text-lg">Invoice Items:</h4>
+                <div className="space-y-3">
                   {invoiceData.items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1 grid grid-cols-4 gap-4 items-center">
-                        <span className="font-medium">{item.finalName}</span>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => handleUpdateItem(item.id, 'quantity', Number(e.target.value))}
-                          className="w-20"
-                        />
-                        <Input
-                          type="number"
-                          value={item.rate}
-                          onChange={(e) => handleUpdateItem(item.id, 'rate', Number(e.target.value))}
-                          className="w-24"
-                        />
-                        <span className="flex items-center font-medium">
+                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm">
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                        <span className="font-medium text-gray-900">{item.finalName}</span>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-gray-500">Qty:</Label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateItem(item.id, 'quantity', Number(e.target.value))}
+                            className="w-20 text-center"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-gray-500">Rate:</Label>
+                          <Input
+                            type="number"
+                            value={item.rate}
+                            onChange={(e) => handleUpdateItem(item.id, 'rate', Number(e.target.value))}
+                            className="w-24"
+                          />
+                        </div>
+                        <span className="flex items-center font-semibold text-green-600">
                           <IndianRupee className="h-4 w-4 mr-1" />
                           {item.total.toFixed(2)}
                         </span>
@@ -383,6 +494,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                         variant="outline"
                         size="icon"
                         onClick={() => handleRemoveItem(item.id)}
+                        className="ml-4"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -403,7 +515,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
         />
 
         {/* Notes */}
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Additional Notes</CardTitle>
           </CardHeader>
@@ -411,8 +523,8 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             <Textarea
               value={invoiceData.notes}
               onChange={(e) => setInvoiceData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Add any additional notes or terms..."
-              className="min-h-[80px]"
+              placeholder="Add any additional notes, terms, or conditions..."
+              className="min-h-[100px]"
             />
           </CardContent>
         </Card>
