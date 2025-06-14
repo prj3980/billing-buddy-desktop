@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Plus, Eye, Printer, Trash2, IndianRupee } from "lucide-react";
+import { FileText, Plus, Eye, Printer, Trash2, IndianRupee, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Invoice {
@@ -24,7 +24,6 @@ interface Invoice {
     website: string;
   };
   date: string;
-  dueDate: string;
   items: Array<{
     id: string;
     productName: string;
@@ -83,7 +82,48 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
     });
   };
 
-  const handlePrint = (invoice: Invoice) => {
+  const generateFileName = (invoice: Invoice) => {
+    const customerName = invoice.customerDetails.name.replace(/[^a-zA-Z0-9]/g, '_');
+    const lastFourDigits = invoice.customerDetails.phone.slice(-4);
+    return `${customerName}_${lastFourDigits}`;
+  };
+
+  const saveInvoiceFile = (invoice: Invoice, htmlContent: string) => {
+    try {
+      const invoiceDate = new Date(invoice.date);
+      const year = invoiceDate.getFullYear();
+      const month = String(invoiceDate.getMonth() + 1).padStart(2, '0');
+      const day = String(invoiceDate.getDate()).padStart(2, '0');
+      
+      const fileName = generateFileName(invoice);
+      
+      // Create a blob with the HTML content
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${year}_${month}_${day}_${fileName}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Invoice Saved",
+        description: `Invoice saved as ${year}/${month}/${day}/${fileName}.html`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save invoice file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrint = (invoice: Invoice, shouldSave: boolean = false) => {
     const printContent = `
       <html>
         <head>
@@ -188,7 +228,6 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
               <h1>INVOICE</h1>
               <h2>${invoice.invoiceNumber}</h2>
               <p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-IN')}</p>
-              <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</p>
             </div>
           </div>
           
@@ -250,6 +289,10 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
       </html>
     `;
     
+    if (shouldSave) {
+      saveInvoiceFile(invoice, printContent);
+    }
+    
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(printContent);
@@ -290,9 +333,13 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                 <CardDescription>Customer: {selectedInvoice.customerDetails.name}</CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => handlePrint(selectedInvoice)}>
+                <Button size="sm" onClick={() => handlePrint(selectedInvoice, false)}>
                   <Printer className="h-4 w-4 mr-2" />
                   Print
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handlePrint(selectedInvoice, true)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Save & Print
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setSelectedInvoice(null)}>
                   Close
@@ -305,7 +352,6 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p><strong>Date:</strong> {selectedInvoice.date}</p>
-                  <p><strong>Due Date:</strong> {selectedInvoice.dueDate}</p>
                 </div>
                 <div>
                   <p><strong>Status:</strong> 
@@ -381,6 +427,13 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                   <Button
                     size="sm"
                     variant="outline"
+                    onClick={() => handlePrint(invoice, false)}
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => handleDelete(invoice.id)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -417,6 +470,13 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                   onClick={() => handleStatusChange(invoice.id, invoice.status === 'paid' ? 'sent' : 'paid')}
                 >
                   Mark as {invoice.status === 'paid' ? 'Unpaid' : 'Paid'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handlePrint(invoice, true)}
+                >
+                  <Download className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
