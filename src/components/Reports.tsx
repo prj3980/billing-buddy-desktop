@@ -1,7 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { BarChart3, TrendingUp, DollarSign, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -20,6 +21,9 @@ interface Invoice {
 const Reports = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [reportPeriod, setReportPeriod] = useState('monthly');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const savedInvoices = localStorage.getItem('invoices');
@@ -27,6 +31,52 @@ const Reports = () => {
       setInvoices(JSON.parse(savedInvoices));
     }
   }, []);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'JMD123') {
+      setIsAuthenticated(true);
+      setError('');
+    } else if (password === '123') {
+      // Show nothing - set authenticated but we'll render empty content
+      setIsAuthenticated(true);
+      setError('');
+    } else {
+      setError('Invalid password');
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Password Required</CardTitle>
+            <CardDescription>Enter password to access Reports & History</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <Input
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+              <Button type="submit" className="w-full">
+                Access Reports
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If password is "123", show nothing
+  if (password === '123') {
+    return <div className="space-y-6"></div>;
+  }
 
   const getRevenueData = () => {
     const now = new Date();
