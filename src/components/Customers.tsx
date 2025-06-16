@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -17,6 +16,7 @@ interface Customer {
 
 const Customers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({
@@ -109,6 +109,14 @@ const Customers = () => {
     });
   };
 
+  // Filter customers based on search term
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone.includes(searchTerm) ||
+    customer.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.address.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -120,6 +128,17 @@ const Customers = () => {
           <Plus className="h-4 w-4" />
           Add Customer
         </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search customers by name, phone, company, or address..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {isEditing && (
@@ -186,7 +205,7 @@ const Customers = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {customers.map((customer) => (
+        {filteredCustomers.map((customer) => (
           <Card key={customer.id} className="relative">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -235,7 +254,20 @@ const Customers = () => {
         ))}
       </div>
 
-      {customers.length === 0 && !isEditing && (
+      {filteredCustomers.length === 0 && !isEditing && searchTerm && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No customers found</h3>
+            <p className="text-muted-foreground mb-4">No customers match your search criteria</p>
+            <Button variant="outline" onClick={() => setSearchTerm('')}>
+              Clear Search
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {customers.length === 0 && !isEditing && !searchTerm && (
         <Card>
           <CardContent className="text-center py-8">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

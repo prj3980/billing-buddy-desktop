@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Plus, Eye, Printer, Trash2, IndianRupee, Download, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { FileText, Plus, Eye, Printer, Trash2, IndianRupee, Download, CheckCircle, Clock, AlertCircle, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Invoice {
@@ -50,6 +50,7 @@ interface InvoicesProps {
 
 const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const { toast } = useToast();
@@ -403,7 +404,25 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
     }
   };
 
-  const filteredInvoices = filterInvoices(activeTab);
+  // Apply search filter to the filtered invoices
+  const getFilteredAndSearchedInvoices = () => {
+    const statusFiltered = filterInvoices(activeTab);
+    
+    if (!searchTerm) return statusFiltered;
+    
+    return statusFiltered.filter(invoice =>
+      invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.customerDetails.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.customerDetails.phone.includes(searchTerm) ||
+      invoice.watermarkId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.items.some(item => 
+        item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.finalName.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  };
+
+  const filteredInvoices = getFilteredAndSearchedInvoices();
 
   return (
     <div className="space-y-6">
@@ -416,6 +435,17 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
           <Plus className="h-4 w-4" />
           Create Invoice
         </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search invoices by number, customer name, phone, verification code, or products..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -605,7 +635,20 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
             ))}
           </div>
 
-          {filteredInvoices.length === 0 && (
+          {filteredInvoices.length === 0 && searchTerm && (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No invoices found</h3>
+                <p className="text-muted-foreground mb-4">No invoices match your search criteria</p>
+                <Button variant="outline" onClick={() => setSearchTerm('')}>
+                  Clear Search
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {filteredInvoices.length === 0 && !searchTerm && (
             <Card>
               <CardContent className="text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

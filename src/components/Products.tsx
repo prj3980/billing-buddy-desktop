@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Save, X, IndianRupee } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, IndianRupee, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {
@@ -24,6 +23,7 @@ interface Product {
 
 const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<Omit<Product, 'id'>>({
@@ -110,6 +110,16 @@ const Products: React.FC = () => {
     toast({ title: "Success", description: "Product deleted successfully!" });
   };
 
+  // Filter products based on search term
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.predefinedColors && product.predefinedColors.some(color => 
+      color.toLowerCase().includes(searchTerm.toLowerCase())
+    ))
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -121,6 +131,17 @@ const Products: React.FC = () => {
           <Plus className="h-4 w-4 mr-2" />
           Add Product
         </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search products by name, category, description, or colors..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {showForm && (
@@ -248,7 +269,7 @@ const Products: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map(product => (
+        {filteredProducts.map(product => (
           <Card key={product.id}>
             <CardHeader>
               <CardTitle className="text-lg">{product.name}</CardTitle>
@@ -292,6 +313,32 @@ const Products: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {filteredProducts.length === 0 && searchTerm && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No products found</h3>
+            <p className="text-muted-foreground mb-4">No products match your search criteria</p>
+            <Button variant="outline" onClick={() => setSearchTerm('')}>
+              Clear Search
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {products.length === 0 && !searchTerm && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <h3 className="text-lg font-semibold mb-2">No products yet</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first product</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
