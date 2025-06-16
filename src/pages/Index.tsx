@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Users, FileText, BarChart3, Store, Plus, Palette, TrendingUp } from "lucide-react";
+import { Package, Users, FileText, BarChart3, Store, Plus, Wrench, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Products from "@/components/Products";
 import Customers from "@/components/Customers";
@@ -23,7 +23,7 @@ const Index = () => {
     setShowInvoiceBuilder(false);
   };
 
-  // Quick stats for dashboard - NO FINANCIAL DATA
+  // Quick stats for dashboard
   const getQuickStats = () => {
     const products = JSON.parse(localStorage.getItem('products') || '[]');
     const customers = JSON.parse(localStorage.getItem('customers') || '[]');
@@ -41,15 +41,15 @@ const Index = () => {
   const stats = getQuickStats();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100">
       <div className="max-w-[1400px] mx-auto p-6">
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">Paint Store Billing System</h1>
-              <p className="text-gray-600 text-lg">Professional invoice management for paint retailers</p>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Jai Mata Di Saintary & Hardware Store</h1>
+              <p className="text-gray-600 text-lg">Complete Billing & Inventory Management System</p>
             </div>
-            <Button onClick={handleCreateInvoice} size="lg" className="shadow-lg bg-blue-600 hover:bg-blue-700 px-8 py-3 text-lg">
+            <Button onClick={handleCreateInvoice} size="lg" className="shadow-lg bg-orange-600 hover:bg-orange-700 px-8 py-3 text-lg">
               <Plus className="h-6 w-6 mr-3" />
               Create New Invoice
             </Button>
@@ -63,7 +63,7 @@ const Index = () => {
               Dashboard
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-3 text-base py-3">
-              <Palette className="h-5 w-5" />
+              <Wrench className="h-5 w-5" />
               Products
             </TabsTrigger>
             <TabsTrigger value="customers" className="flex items-center gap-3 text-base py-3">
@@ -91,9 +91,9 @@ const Index = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600 mb-1">Total Products</p>
-                      <p className="text-3xl font-bold text-blue-600">{stats.totalProducts}</p>
+                      <p className="text-3xl font-bold text-orange-600">{stats.totalProducts}</p>
                     </div>
-                    <Palette className="h-12 w-12 text-blue-600 opacity-80" />
+                    <Wrench className="h-12 w-12 text-orange-600 opacity-80" />
                   </div>
                 </CardContent>
               </Card>
@@ -118,7 +118,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 gap-4">
-                  <Button onClick={handleCreateInvoice} className="h-16 flex items-center justify-start gap-4 text-left bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200">
+                  <Button onClick={handleCreateInvoice} className="h-16 flex items-center justify-start gap-4 text-left bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200">
                     <Plus className="h-8 w-8" />
                     <div>
                       <div className="font-semibold">Create Invoice</div>
@@ -126,10 +126,10 @@ const Index = () => {
                     </div>
                   </Button>
                   <Button onClick={() => setActiveTab("products")} variant="outline" className="h-16 flex items-center justify-start gap-4 text-left">
-                    <Palette className="h-8 w-8 text-purple-600" />
+                    <Wrench className="h-8 w-8 text-blue-600" />
                     <div>
                       <div className="font-semibold">Manage Products</div>
-                      <div className="text-sm opacity-70">Add or edit paint products</div>
+                      <div className="text-sm opacity-70">Add or edit hardware items & supplies</div>
                     </div>
                   </Button>
                   <Button onClick={() => setActiveTab("customers")} variant="outline" className="h-16 flex items-center justify-start gap-4 text-left">
