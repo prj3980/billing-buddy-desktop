@@ -23,6 +23,8 @@ interface Invoice {
     email: string;
     taxId: string;
     website: string;
+    logo?: string;
+    paymentQR?: string;
   };
   date: string;
   items: Array<{
@@ -200,6 +202,12 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
               margin-bottom: ${isCompact ? '1mm' : '2mm'};
             }
             
+            .logo {
+              max-width: 40mm;
+              max-height: 20mm;
+              margin: 0 auto ${isCompact ? '1mm' : '2mm'} auto;
+            }
+            
             .store-name {
               font-size: ${fontSize === 'large' ? '16px' : '14px'} !important;
               font-weight: bold;
@@ -259,10 +267,18 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
               padding-top: ${isCompact ? '1mm' : '2mm'};
               font-size: ${fontSize === 'small' ? '8px' : '10px'} !important;
             }
+            
+            .qr-code {
+              max-width: 30mm;
+              max-height: 30mm;
+              margin: 2mm auto;
+            }
           </style>
         </head>
         <body>
           <div class="header">
+            ${invoice.storeInfo.logo && storeSettings.printSettings?.includeLogo ? 
+              `<img src="${invoice.storeInfo.logo}" alt="Store Logo" class="logo" />` : ''}
             <div class="store-name">${invoice.storeInfo.name || 'Hardware Store'}</div>
             <div>${invoice.storeInfo.address || ''}</div>
             <div>Ph: ${invoice.storeInfo.phone || ''}</div>
@@ -311,6 +327,9 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
           
           <div class="footer">
             <div>Thank you for your business!</div>
+            ${invoice.storeInfo.paymentQR && storeSettings.printSettings?.includeQR ? 
+              `<img src="${invoice.storeInfo.paymentQR}" alt="Payment QR" class="qr-code" />
+               <div>Scan to Pay</div>` : ''}
             <div>Status: ${invoice.status.toUpperCase()}</div>
             <div style="margin-top: 2mm; font-size: 8px;">${invoice.watermarkId}</div>
           </div>
@@ -328,7 +347,7 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
     if (printerType === 'thermal') {
       printContent = generateThermalPrintContent(invoice);
     } else {
-      // Normal printer content (existing code with verification code moved to bottom)
+      // Normal printer content
       printContent = `
         <html>
           <head>
@@ -375,6 +394,7 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                 padding-bottom: 20px;
               }
               .company-info { text-align: left; }
+              .company-logo { max-width: 150px; max-height: 80px; margin-bottom: 10px; }
               .invoice-title { text-align: right; }
               .invoice-title h1 { 
                 margin: 0; 
@@ -447,6 +467,13 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                 text-align: center; 
                 font-size: 12px; 
                 color: #666;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+              .payment-qr {
+                max-width: 100px;
+                max-height: 100px;
               }
             </style>
           </head>
@@ -458,6 +485,8 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
             
             <div class="header">
               <div class="company-info">
+                ${invoice.storeInfo.logo && storeSettings.printSettings?.includeLogo ? 
+                  `<img src="${invoice.storeInfo.logo}" alt="Store Logo" class="company-logo" />` : ''}
                 <h2>${invoice.storeInfo.name || 'Hardware Store'}</h2>
                 <p>${invoice.storeInfo.address || ''}</p>
                 <p>Phone: ${invoice.storeInfo.phone || ''}</p>
@@ -484,8 +513,8 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
               <thead>
                 <tr>
                   <th>Item Description</th>
-                  <th style="text-align: center; width: 80px;">Containers</th>
-                  <th style="text-align: right; width: 100px;">Rate per Container (₹)</th>
+                  <th style="text-align: center; width: 80px;">Qty</th>
+                  <th style="text-align: right; width: 100px;">Rate (₹)</th>
                   <th style="text-align: right; width: 100px;">Amount (₹)</th>
                 </tr>
               </thead>
@@ -526,9 +555,18 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
             ` : ''}
             
             <div class="footer">
-              <p>Thank you for your business!</p>
-              <p style="margin-top: 10px;">Status: ${invoice.status.toUpperCase()}</p>
-              <p style="margin-top: 5px; font-size: 10px;">${invoice.watermarkId}</p>
+              <div>
+                <p>Thank you for your business!</p>
+                <p style="margin-top: 10px;">Status: ${invoice.status.toUpperCase()}</p>
+              </div>
+              ${invoice.storeInfo.paymentQR && storeSettings.printSettings?.includeQR ? 
+                `<div style="text-align: center;">
+                   <img src="${invoice.storeInfo.paymentQR}" alt="Payment QR" class="payment-qr" />
+                   <p style="margin: 5px 0; font-size: 10px;">Scan to Pay</p>
+                 </div>` : ''}
+              <div style="text-align: right;">
+                <p style="font-size: 10px;">${invoice.watermarkId}</p>
+              </div>
             </div>
           </body>
         </html>
@@ -661,7 +699,6 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <p><strong>Date:</strong> {selectedInvoice.date}</p>
-                      <p><strong>Verification:</strong> {selectedInvoice.watermarkId}</p>
                     </div>
                     <div>
                       <p><strong>Status:</strong> 
@@ -690,7 +727,7 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                     <div className="space-y-2">
                       {selectedInvoice.items.map((item, index) => (
                         <div key={index} className="flex justify-between p-2 bg-gray-50 rounded">
-                          <span>{item.finalName} (x{item.quantity})</span>
+                          <span>{item.finalName} (Qty: {item.quantity})</span>
                           <span className="flex items-center">
                             <IndianRupee className="h-4 w-4" />
                             {item.total.toFixed(2)}
@@ -777,10 +814,6 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
                       <Badge variant={getStatusColor(invoice.status)}>
                         {invoice.status}
                       </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Verification:</span>
-                      <span className="text-xs font-mono">{invoice.watermarkId}</span>
                     </div>
                   </div>
                   <div className="mt-4 flex gap-2">

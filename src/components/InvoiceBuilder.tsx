@@ -205,9 +205,9 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
       colorCode: finalColorCode,
       volume: selectedVolume,
       finalName: finalName.trim(),
-      quantity, // Number of containers
-      rate, // Rate per container (not per unit volume)
-      total: quantity * rate, // Total = containers × rate per container
+      quantity,
+      rate,
+      total: quantity * rate,
       unit: product.unit,
     };
 
@@ -308,7 +308,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-lg">
           <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={onClose} size="lg">
+            <Button variant="outline" onClick={onClose} size="lg" className="hover:bg-gray-50">
               <ArrowLeft className="h-5 w-5 mr-2" />
               Back to Invoices
             </Button>
@@ -323,10 +323,19 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             </div>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => handleSaveInvoice('draft')} size="lg">
+            <Button 
+              variant="outline" 
+              onClick={() => handleSaveInvoice('draft')} 
+              size="lg"
+              className="bg-gray-50 hover:bg-gray-100 border-gray-300"
+            >
               Save Draft
             </Button>
-            <Button onClick={() => handleSaveInvoice('sent')} size="lg" className="bg-blue-600 hover:bg-blue-700">
+            <Button 
+              onClick={() => handleSaveInvoice('sent')} 
+              size="lg" 
+              className="bg-blue-600 hover:bg-blue-700 shadow-md"
+            >
               Create Invoice
             </Button>
           </div>
@@ -356,15 +365,18 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
         {/* Items Section */}
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">Add Items</CardTitle>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Add Items
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Add Item Form */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border">
               <div>
-                <Label className="text-sm font-semibold">Product *</Label>
+                <Label className="text-sm font-semibold text-gray-700">Product *</Label>
                 <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                  <SelectTrigger>
+                  <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select product" />
                   </SelectTrigger>
                   <SelectContent>
@@ -378,8 +390,8 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               </div>
 
               <div>
-                <Label className="text-sm font-semibold">
-                  Containers * 
+                <Label className="text-sm font-semibold text-gray-700">
+                  Qty * 
                   {selectedVolume && <span className="text-xs text-gray-500 block">({selectedVolume} each)</span>}
                 </Label>
                 <Input
@@ -387,14 +399,14 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                   value={quantity}
                   onChange={(e) => setQuantity(Number(e.target.value))}
                   min="1"
-                  className="text-center"
-                  placeholder="Number of containers"
+                  className="text-center mt-1"
+                  placeholder="Quantity"
                 />
               </div>
 
               <div>
-                <Label className="text-sm font-semibold">
-                  Rate per Container *
+                <Label className="text-sm font-semibold text-gray-700">
+                  Rate *
                   {selectedVolume && <span className="text-xs text-gray-500 block">(per {selectedVolume})</span>}
                 </Label>
                 <Input
@@ -404,12 +416,13 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                   min="0"
                   step="0.01"
                   placeholder="0.00"
+                  className="mt-1"
                 />
               </div>
 
               <div>
-                <Label className="text-sm font-semibold">Total</Label>
-                <div className="flex items-center h-10 px-3 py-2 border bg-white rounded-md font-semibold">
+                <Label className="text-sm font-semibold text-gray-700">Total</Label>
+                <div className="flex items-center h-10 px-3 py-2 border bg-white rounded-md font-semibold mt-1 text-green-600">
                   <IndianRupee className="h-4 w-4 mr-1" />
                   {(quantity * rate).toFixed(2)}
                 </div>
@@ -418,12 +431,12 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
 
             {/* Color and Volume Options */}
             {selectedProductData?.hasVariableColors && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border">
                 {selectedProductData.predefinedColors && selectedProductData.predefinedColors.length > 0 && (
                   <div>
                     <Label className="text-sm font-semibold">Predefined Color</Label>
                     <Select value={selectedColor} onValueChange={setSelectedColor}>
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select color" />
                       </SelectTrigger>
                       <SelectContent>
@@ -442,6 +455,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                     value={customColorCode}
                     onChange={(e) => setCustomColorCode(e.target.value)}
                     placeholder="Enter custom color"
+                    className="mt-1"
                   />
                 </div>
               </div>
@@ -451,7 +465,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               <div className="max-w-md">
                 <Label className="text-sm font-semibold">Volume</Label>
                 <Select value={selectedVolume} onValueChange={setSelectedVolume}>
-                  <SelectTrigger>
+                  <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select volume" />
                   </SelectTrigger>
                   <SelectContent>
@@ -465,22 +479,32 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               </div>
             )}
 
-            <Button onClick={handleAddItem} className="w-full bg-green-600 hover:bg-green-700 text-lg py-3">
-              <Plus className="h-5 w-5 mr-2" />
-              Add Item to Invoice
-            </Button>
+            <div className="flex justify-center">
+              <Button 
+                onClick={handleAddItem} 
+                className="bg-green-600 hover:bg-green-700 text-lg py-3 px-8 shadow-lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Item to Invoice
+              </Button>
+            </div>
 
             {/* Items List */}
             {invoiceData.items.length > 0 && (
               <div className="space-y-3">
-                <h4 className="font-semibold text-lg">Invoice Items:</h4>
+                <h4 className="font-semibold text-lg flex items-center gap-2">
+                  Invoice Items:
+                  <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {invoiceData.items.length} items
+                  </span>
+                </h4>
                 <div className="space-y-3">
                   {invoiceData.items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm">
+                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <span className="font-medium text-gray-900">{item.finalName}</span>
                         <div className="flex items-center gap-2">
-                          <Label className="text-xs text-gray-500">Containers:</Label>
+                          <Label className="text-xs text-gray-500">Qty:</Label>
                           <Input
                             type="number"
                             value={item.quantity}
@@ -489,7 +513,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <Label className="text-xs text-gray-500">Rate/Container:</Label>
+                          <Label className="text-xs text-gray-500">Rate:</Label>
                           <Input
                             type="number"
                             value={item.rate}
@@ -506,9 +530,9 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                         variant="outline"
                         size="icon"
                         onClick={() => handleRemoveItem(item.id)}
-                        className="ml-4"
+                        className="ml-4 hover:bg-red-50 hover:border-red-300"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
                   ))}

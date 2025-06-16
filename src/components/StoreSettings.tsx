@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Printer } from "lucide-react";
+import { Store, Printer, Upload, QrCode, Image } from "lucide-react";
 
 interface StoreSettingsData {
   name: string;
@@ -16,6 +17,8 @@ interface StoreSettingsData {
   email: string;
   taxId: string;
   website: string;
+  logo: string;
+  paymentQR: string;
   printerType: 'normal' | 'thermal';
   thermalSettings: {
     paperWidth: string;
@@ -32,12 +35,14 @@ interface StoreSettingsData {
 
 const StoreSettings = () => {
   const [formData, setFormData] = useState<StoreSettingsData>({
-    name: '',
+    name: 'Jai Mata Di Saintary & Hardware Store',
     address: '',
     phone: '',
     email: '',
     taxId: '',
     website: '',
+    logo: '',
+    paymentQR: '',
     printerType: 'normal',
     thermalSettings: {
       paperWidth: '80mm',
@@ -56,80 +61,120 @@ const StoreSettings = () => {
   useEffect(() => {
     const savedSettings = localStorage.getItem('storeSettings');
     if (savedSettings) {
-      setFormData(JSON.parse(savedSettings));
+      const settings = JSON.parse(savedSettings);
+      setFormData({
+        ...formData,
+        ...settings,
+        name: settings.name || 'Jai Mata Di Saintary & Hardware Store'
+      });
     }
   }, []);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'paymentQR') => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setFormData(prev => ({
+          ...prev,
+          [type]: result
+        }));
+        toast({
+          title: "Success",
+          description: `${type === 'logo' ? 'Logo' : 'Payment QR code'} uploaded successfully!`,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const generateThermalPrintCSS = () => {
     return `
       @media print {
         @page {
-          size: 80mm auto;
-          margin: 2mm;
+          size: ${formData.thermalSettings.paperWidth} auto;
+          margin: 1mm;
         }
         
         * {
           font-family: 'Courier New', monospace !important;
-          font-size: 12px !important;
-          line-height: 1.2 !important;
+          font-size: ${formData.thermalSettings.fontSize === 'small' ? '10px' : 
+                      formData.thermalSettings.fontSize === 'large' ? '14px' : '12px'} !important;
+          line-height: ${formData.thermalSettings.compactMode ? '1.1' : '1.3'} !important;
           color: black !important;
           background: white !important;
+          margin: 0;
+          padding: 0;
         }
         
         body {
-          width: 76mm;
+          width: ${formData.thermalSettings.paperWidth === '80mm' ? '78mm' : 
+                  formData.thermalSettings.paperWidth === '58mm' ? '56mm' : '108mm'};
           margin: 0;
-          padding: 2mm;
+          padding: 1mm;
         }
         
         .thermal-header {
           text-align: center;
           border-bottom: 1px dashed black;
-          padding-bottom: 2mm;
-          margin-bottom: 2mm;
+          padding-bottom: ${formData.thermalSettings.compactMode ? '1mm' : '2mm'};
+          margin-bottom: ${formData.thermalSettings.compactMode ? '1mm' : '2mm'};
+        }
+        
+        .thermal-logo {
+          max-width: 40mm;
+          max-height: 20mm;
+          margin: 0 auto ${formData.thermalSettings.compactMode ? '1mm' : '2mm'} auto;
         }
         
         .thermal-header h1 {
-          font-size: 14px !important;
+          font-size: ${formData.thermalSettings.fontSize === 'large' ? '16px' : '14px'} !important;
           font-weight: bold;
           margin: 0 0 1mm 0;
         }
         
         .thermal-header p {
-          font-size: 10px !important;
+          font-size: ${formData.thermalSettings.fontSize === 'small' ? '8px' : '10px'} !important;
           margin: 0;
         }
         
         .thermal-section {
-          margin: 2mm 0;
-          padding: 1mm 0;
+          margin: ${formData.thermalSettings.compactMode ? '1mm' : '2mm'} 0;
+          padding: ${formData.thermalSettings.compactMode ? '0.5mm' : '1mm'} 0;
         }
         
         .thermal-row {
           display: flex;
           justify-content: space-between;
-          margin: 1mm 0;
+          margin: ${formData.thermalSettings.compactMode ? '0.5mm' : '1mm'} 0;
         }
         
         .thermal-item {
           border-bottom: 1px dotted black;
-          padding: 1mm 0;
+          padding: ${formData.thermalSettings.compactMode ? '0.5mm' : '1mm'} 0;
         }
         
         .thermal-total {
           border-top: 1px dashed black;
           border-bottom: 1px dashed black;
-          padding: 2mm 0;
-          margin: 2mm 0;
+          padding: ${formData.thermalSettings.compactMode ? '1mm' : '2mm'} 0;
+          margin: ${formData.thermalSettings.compactMode ? '1mm' : '2mm'} 0;
           font-weight: bold;
         }
         
         .thermal-footer {
           text-align: center;
           border-top: 1px dashed black;
-          padding-top: 2mm;
-          margin-top: 2mm;
-          font-size: 10px !important;
+          padding-top: ${formData.thermalSettings.compactMode ? '1mm' : '2mm'};
+          margin-top: ${formData.thermalSettings.compactMode ? '1mm' : '2mm'};
+          font-size: ${formData.thermalSettings.fontSize === 'small' ? '8px' : '10px'} !important;
+        }
+        
+        .thermal-qr {
+          max-width: 30mm;
+          max-height: 30mm;
+          margin: 2mm auto;
         }
         
         .hide-on-thermal {
@@ -150,7 +195,12 @@ const StoreSettings = () => {
         </head>
         <body>
           <div class="thermal-header">
-            <h1>Jai Mata Di Saintary & Hardware Store</h1>
+            ${formData.logo && formData.printSettings.includeLogo ? 
+              `<img src="${formData.logo}" alt="Store Logo" class="thermal-logo" />` : ''}
+            <h1>${formData.name}</h1>
+            <p>${formData.address}</p>
+            <p>Ph: ${formData.phone}</p>
+            ${formData.taxId ? `<p>GST: ${formData.taxId}</p>` : ''}
             <p>Test Print - ${new Date().toLocaleString()}</p>
           </div>
           
@@ -178,6 +228,9 @@ const StoreSettings = () => {
           
           <div class="thermal-footer">
             <p>Thank you for your business!</p>
+            ${formData.paymentQR && formData.printSettings.includeQR ? 
+              `<img src="${formData.paymentQR}" alt="Payment QR" class="thermal-qr" />
+               <p>Scan to Pay</p>` : ''}
             <p>Thermal Printer Test Successful</p>
           </div>
         </body>
@@ -201,7 +254,7 @@ const StoreSettings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center space-x-2">
         <Store className="h-6 w-6 text-gray-500" />
         <h2 className="text-2xl font-bold">Store Settings</h2>
@@ -276,6 +329,94 @@ const StoreSettings = () => {
               value={formData.taxId}
               onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Store Branding */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Image className="h-5 w-5" />
+            Store Branding
+          </CardTitle>
+          <CardDescription>
+            Upload your store logo and payment QR code for invoices
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Store Logo */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Store Logo</Label>
+            <div className="flex items-center gap-4">
+              {formData.logo && (
+                <div className="w-24 h-24 border rounded-lg overflow-hidden bg-gray-50">
+                  <img 
+                    src={formData.logo} 
+                    alt="Store Logo" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              )}
+              <div>
+                <input
+                  type="file"
+                  id="logo-upload"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 'logo')}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {formData.logo ? 'Change Logo' : 'Upload Logo'}
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Recommended: PNG or JPG, max 2MB
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment QR Code */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Payment QR Code</Label>
+            <div className="flex items-center gap-4">
+              {formData.paymentQR && (
+                <div className="w-24 h-24 border rounded-lg overflow-hidden bg-gray-50">
+                  <img 
+                    src={formData.paymentQR} 
+                    alt="Payment QR Code" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              )}
+              <div>
+                <input
+                  type="file"
+                  id="qr-upload"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 'paymentQR')}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('qr-upload')?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <QrCode className="h-4 w-4" />
+                  {formData.paymentQR ? 'Change QR Code' : 'Upload QR Code'}
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Upload UPI/Payment QR code for customer payments
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -432,7 +573,7 @@ const StoreSettings = () => {
                   }))}
                   className="h-4 w-4 text-blue-600"
                 />
-                <Label htmlFor="printLogo">Include Store Logo</Label>
+                <Label htmlFor="printLogo">Include Store Logo in Receipts</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -446,7 +587,7 @@ const StoreSettings = () => {
                   }))}
                   className="h-4 w-4 text-blue-600"
                 />
-                <Label htmlFor="printQR">Include QR Code for Digital Receipt</Label>
+                <Label htmlFor="printQR">Include Payment QR Code in Receipts</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -467,9 +608,11 @@ const StoreSettings = () => {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white">
-        Save Settings
-      </Button>
+      <div className="flex justify-end">
+        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white px-8">
+          Save Settings
+        </Button>
+      </div>
     </div>
   );
 };
