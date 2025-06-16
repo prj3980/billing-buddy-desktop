@@ -194,15 +194,20 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
 
     const finalColorCode = customColorCode || selectedColor;
     
+    // Build final name with container information
+    let finalName = product.name;
+    if (finalColorCode) finalName += ` ${finalColorCode}`;
+    if (selectedVolume) finalName += ` ${selectedVolume}`;
+    
     const newItem: InvoiceItem = {
       id: `item_${Date.now()}`,
       productName: product.name,
       colorCode: finalColorCode,
       volume: selectedVolume,
-      finalName: `${product.name} ${finalColorCode} ${selectedVolume}`.trim(),
-      quantity,
-      rate,
-      total: quantity * rate,
+      finalName: finalName.trim(),
+      quantity, // Number of containers
+      rate, // Rate per container (not per unit volume)
+      total: quantity * rate, // Total = containers × rate per container
       unit: product.unit,
     };
 
@@ -373,18 +378,25 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               </div>
 
               <div>
-                <Label className="text-sm font-semibold">Quantity * ({selectedProductData?.unit || 'unit'})</Label>
+                <Label className="text-sm font-semibold">
+                  Containers * 
+                  {selectedVolume && <span className="text-xs text-gray-500 block">({selectedVolume} each)</span>}
+                </Label>
                 <Input
                   type="number"
                   value={quantity}
                   onChange={(e) => setQuantity(Number(e.target.value))}
                   min="1"
                   className="text-center"
+                  placeholder="Number of containers"
                 />
               </div>
 
               <div>
-                <Label className="text-sm font-semibold">Rate *</Label>
+                <Label className="text-sm font-semibold">
+                  Rate per Container *
+                  {selectedVolume && <span className="text-xs text-gray-500 block">(per {selectedVolume})</span>}
+                </Label>
                 <Input
                   type="number"
                   value={rate}
@@ -468,7 +480,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <span className="font-medium text-gray-900">{item.finalName}</span>
                         <div className="flex items-center gap-2">
-                          <Label className="text-xs text-gray-500">Qty:</Label>
+                          <Label className="text-xs text-gray-500">Containers:</Label>
                           <Input
                             type="number"
                             value={item.quantity}
@@ -477,7 +489,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <Label className="text-xs text-gray-500">Rate:</Label>
+                          <Label className="text-xs text-gray-500">Rate/Container:</Label>
                           <Input
                             type="number"
                             value={item.rate}

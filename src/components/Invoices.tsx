@@ -152,218 +152,388 @@ const Invoices: React.FC<InvoicesProps> = ({ onCreateNew }) => {
     }
   };
 
-  const handlePrint = (invoice: Invoice, shouldSave: boolean = false) => {
-    const printContent = `
+  const generateThermalPrintContent = (invoice: Invoice) => {
+    const storeSettings = JSON.parse(localStorage.getItem('storeSettings') || '{}');
+    const isCompact = storeSettings.thermalSettings?.compactMode || false;
+    const fontSize = storeSettings.thermalSettings?.fontSize || 'medium';
+    
+    const fontSizeMap = {
+      small: '10px',
+      medium: '12px',
+      large: '14px'
+    };
+
+    return `
       <html>
         <head>
-          <title>Invoice ${invoice.invoiceNumber}</title>
+          <title>Receipt ${invoice.invoiceNumber}</title>
           <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 20px; 
-              line-height: 1.4;
-              color: #333;
-              position: relative;
+            @page {
+              size: 80mm auto;
+              margin: 1mm;
             }
-            .watermark {
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%) rotate(-45deg);
-              font-size: 60px;
-              color: rgba(0, 0, 0, 0.05);
+            
+            * {
+              font-family: 'Courier New', monospace !important;
+              font-size: ${fontSizeMap[fontSize as keyof typeof fontSizeMap]} !important;
+              line-height: ${isCompact ? '1.1' : '1.3'} !important;
+              color: black !important;
+              background: white !important;
+              margin: 0;
+              padding: 0;
+            }
+            
+            body {
+              width: 78mm;
+              margin: 0;
+              padding: 1mm;
+            }
+            
+            .center { text-align: center; }
+            .right { text-align: right; }
+            .bold { font-weight: bold; }
+            
+            .header {
+              text-align: center;
+              border-bottom: 1px dashed black;
+              padding-bottom: ${isCompact ? '1mm' : '2mm'};
+              margin-bottom: ${isCompact ? '1mm' : '2mm'};
+            }
+            
+            .store-name {
+              font-size: ${fontSize === 'large' ? '16px' : '14px'} !important;
               font-weight: bold;
-              z-index: -1;
-              user-select: none;
+              margin-bottom: 1mm;
             }
-            .verification-code {
-              position: absolute;
-              top: 20px;
-              right: 20px;
-              background: #f0f0f0;
-              padding: 8px 12px;
-              border-radius: 4px;
-              font-size: 12px;
-              color: #666;
-              border: 1px solid #ddd;
+            
+            .invoice-info {
+              margin: ${isCompact ? '1mm' : '2mm'} 0;
             }
-            .payment-status {
-              position: absolute;
-              top: 20px;
-              left: 20px;
-              padding: 8px 16px;
-              border-radius: 20px;
-              font-weight: bold;
-              font-size: 14px;
+            
+            .customer-info {
+              margin: ${isCompact ? '1mm' : '2mm'} 0;
+              border-bottom: 1px dotted black;
+              padding-bottom: ${isCompact ? '1mm' : '2mm'};
             }
-            .status-paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-            .status-unpaid { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-            .status-draft { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
-            .status-sent { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
-            .status-overdue { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-            .header { 
-              display: flex; 
-              justify-content: space-between; 
-              align-items: start; 
-              margin: 60px 0 30px 0; 
-              border-bottom: 2px solid #eee;
-              padding-bottom: 20px;
+            
+            .item-row {
+              margin: ${isCompact ? '0.5mm' : '1mm'} 0;
+              border-bottom: 1px dotted black;
+              padding-bottom: ${isCompact ? '0.5mm' : '1mm'};
             }
-            .company-info { text-align: left; }
-            .invoice-title { text-align: right; }
-            .invoice-title h1 { 
-              margin: 0; 
-              font-size: 28px; 
-              color: #2563eb; 
-            }
-            .invoice-title h2 { 
-              margin: 5px 0; 
-              font-size: 18px; 
-              color: #666; 
-            }
-            .customer-info { 
-              margin-bottom: 20px; 
-              background: #f8f9fa;
-              padding: 15px;
-              border-radius: 5px;
-            }
-            .table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin: 20px 0; 
-            }
-            .table th, .table td { 
-              border: 1px solid #ddd; 
-              padding: 12px 8px; 
-              text-align: left; 
-            }
-            .table th { 
-              background-color: #f2f2f2; 
+            
+            .item-name {
               font-weight: bold;
             }
-            .table td:last-child, .table th:last-child { 
-              text-align: right; 
+            
+            .item-details {
+              display: flex;
+              justify-content: space-between;
+              margin-top: ${isCompact ? '0.5mm' : '1mm'};
             }
-            .total-section { 
-              text-align: right; 
-              margin-top: 20px; 
-              border-top: 2px solid #eee;
-              padding-top: 15px;
+            
+            .totals {
+              border-top: 1px dashed black;
+              padding-top: ${isCompact ? '1mm' : '2mm'};
+              margin-top: ${isCompact ? '1mm' : '2mm'};
             }
-            .total-row { 
-              display: flex; 
-              justify-content: flex-end; 
-              margin: 5px 0;
+            
+            .total-row {
+              display: flex;
+              justify-content: space-between;
+              margin: ${isCompact ? '0.5mm' : '1mm'} 0;
             }
-            .total-label { 
-              width: 120px; 
-              text-align: right; 
-              margin-right: 20px;
-            }
-            .total-amount { 
-              width: 100px; 
-              text-align: right; 
+            
+            .final-total {
               font-weight: bold;
+              border-top: 1px solid black;
+              border-bottom: 1px solid black;
+              padding: ${isCompact ? '1mm' : '2mm'} 0;
+              margin: ${isCompact ? '1mm' : '2mm'} 0;
             }
-            .final-total { 
-              font-size: 18px; 
-              border-top: 1px solid #ccc; 
-              padding-top: 10px; 
-              margin-top: 10px;
-            }
-            .notes { 
-              margin-top: 30px; 
-              padding: 15px;
-              background: #f8f9fa;
-              border-radius: 5px;
+            
+            .footer {
+              text-align: center;
+              margin-top: ${isCompact ? '2mm' : '3mm'};
+              border-top: 1px dashed black;
+              padding-top: ${isCompact ? '1mm' : '2mm'};
+              font-size: ${fontSize === 'small' ? '8px' : '10px'} !important;
             }
           </style>
         </head>
         <body>
-          <div class="watermark">ORIGINAL INVOICE</div>
-          <div class="verification-code">
-            Verification: ${invoice.watermarkId}
-          </div>
-          <div class="payment-status status-${invoice.status}">
-            ${invoice.status.toUpperCase()}
+          <div class="header">
+            <div class="store-name">${invoice.storeInfo.name || 'Hardware Store'}</div>
+            <div>${invoice.storeInfo.address || ''}</div>
+            <div>Ph: ${invoice.storeInfo.phone || ''}</div>
+            ${invoice.storeInfo.taxId ? `<div>GST: ${invoice.storeInfo.taxId}</div>` : ''}
           </div>
           
-          <div class="header">
-            <div class="company-info">
-              <h2>${invoice.storeInfo.name || 'Paint Store'}</h2>
-              <p>${invoice.storeInfo.address || ''}</p>
-              <p>Phone: ${invoice.storeInfo.phone || ''}</p>
-              <p>Email: ${invoice.storeInfo.email || ''}</p>
-              ${invoice.storeInfo.taxId ? `<p>GST/Tax ID: ${invoice.storeInfo.taxId}</p>` : ''}
-              ${invoice.storeInfo.website ? `<p>Website: ${invoice.storeInfo.website}</p>` : ''}
-            </div>
-            <div class="invoice-title">
-              <h1>INVOICE</h1>
-              <h2>${invoice.invoiceNumber}</h2>
-              <p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-IN')}</p>
-            </div>
+          <div class="invoice-info">
+            <div><strong>Receipt: ${invoice.invoiceNumber}</strong></div>
+            <div>Date: ${new Date(invoice.date).toLocaleDateString('en-IN')}</div>
+            <div>Time: ${new Date().toLocaleTimeString('en-IN')}</div>
           </div>
           
           <div class="customer-info">
-            <h3 style="margin-top: 0;">Bill To:</h3>
-            <p><strong>${invoice.customerDetails.name}</strong></p>
-            ${invoice.customerDetails.address ? `<p>${invoice.customerDetails.address}</p>` : ''}
-            ${invoice.customerDetails.phone ? `<p>Phone: ${invoice.customerDetails.phone}</p>` : ''}
-            ${invoice.customerDetails.email ? `<p>Email: ${invoice.customerDetails.email}</p>` : ''}
+            <div><strong>Customer: ${invoice.customerDetails.name}</strong></div>
+            ${invoice.customerDetails.phone ? `<div>Ph: ${invoice.customerDetails.phone}</div>` : ''}
           </div>
           
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Item Description</th>
-                <th style="text-align: center; width: 80px;">Qty</th>
-                <th style="text-align: right; width: 100px;">Rate (₹)</th>
-                <th style="text-align: right; width: 100px;">Amount (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${invoice.items.map(item => `
-                <tr>
-                  <td>${item.finalName || `${item.productName} ${item.colorCode} ${item.volume}`.trim()}</td>
-                  <td style="text-align: center;">${item.quantity}</td>
-                  <td style="text-align: right;">₹${item.rate.toFixed(2)}</td>
-                  <td style="text-align: right;">₹${item.total.toFixed(2)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+          <div class="items">
+            ${invoice.items.map(item => `
+              <div class="item-row">
+                <div class="item-name">${item.finalName || `${item.productName} ${item.colorCode} ${item.volume}`.trim()}</div>
+                <div class="item-details">
+                  <span>${item.quantity} x Rs.${item.rate.toFixed(2)}</span>
+                  <span>Rs.${item.total.toFixed(2)}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
           
-          <div class="total-section">
+          <div class="totals">
             <div class="total-row">
-              <div class="total-label">Subtotal:</div>
-              <div class="total-amount">₹${invoice.subtotal.toFixed(2)}</div>
+              <span>Subtotal:</span>
+              <span>Rs.${invoice.subtotal.toFixed(2)}</span>
             </div>
             ${invoice.gstEnabled ? `
             <div class="total-row">
-              <div class="total-label">GST (18%):</div>
-              <div class="total-amount">₹${invoice.tax.toFixed(2)}</div>
+              <span>GST (18%):</span>
+              <span>Rs.${invoice.tax.toFixed(2)}</span>
             </div>
             ` : ''}
             <div class="total-row final-total">
-              <div class="total-label">Total Amount:</div>
-              <div class="total-amount">₹${invoice.total.toFixed(2)}</div>
+              <span>TOTAL:</span>
+              <span>Rs.${invoice.total.toFixed(2)}</span>
             </div>
           </div>
           
-          ${invoice.notes ? `
-            <div class="notes">
-              <h4 style="margin-top: 0;">Notes:</h4>
-              <p>${invoice.notes}</p>
-            </div>
-          ` : ''}
-          
-          <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #666;">
-            <p>Thank you for your business!</p>
-            <p style="margin-top: 10px;">Verification Code: ${invoice.watermarkId} | Status: ${invoice.status.toUpperCase()}</p>
+          <div class="footer">
+            <div>Thank you for your business!</div>
+            <div>Status: ${invoice.status.toUpperCase()}</div>
+            <div style="margin-top: 2mm; font-size: 8px;">${invoice.watermarkId}</div>
           </div>
         </body>
       </html>
     `;
+  };
+
+  const handlePrint = (invoice: Invoice, shouldSave: boolean = false) => {
+    const storeSettings = JSON.parse(localStorage.getItem('storeSettings') || '{}');
+    const printerType = storeSettings.printerType || 'normal';
+    
+    let printContent = '';
+    
+    if (printerType === 'thermal') {
+      printContent = generateThermalPrintContent(invoice);
+    } else {
+      // Normal printer content (existing code with verification code moved to bottom)
+      printContent = `
+        <html>
+          <head>
+            <title>Invoice ${invoice.invoiceNumber}</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                line-height: 1.4;
+                color: #333;
+                position: relative;
+              }
+              .watermark {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-45deg);
+                font-size: 60px;
+                color: rgba(0, 0, 0, 0.05);
+                font-weight: bold;
+                z-index: -1;
+                user-select: none;
+              }
+              .payment-status {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-weight: bold;
+                font-size: 14px;
+              }
+              .status-paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+              .status-unpaid { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+              .status-draft { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+              .status-sent { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+              .status-overdue { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+              .header { 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: start; 
+                margin: 60px 0 30px 0; 
+                border-bottom: 2px solid #eee;
+                padding-bottom: 20px;
+              }
+              .company-info { text-align: left; }
+              .invoice-title { text-align: right; }
+              .invoice-title h1 { 
+                margin: 0; 
+                font-size: 28px; 
+                color: #2563eb; 
+              }
+              .invoice-title h2 { 
+                margin: 5px 0; 
+                font-size: 18px; 
+                color: #666; 
+              }
+              .customer-info { 
+                margin-bottom: 20px; 
+                background: #f8f9fa;
+                padding: 15px;
+                border-radius: 5px;
+              }
+              .table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin: 20px 0; 
+              }
+              .table th, .table td { 
+                border: 1px solid #ddd; 
+                padding: 12px 8px; 
+                text-align: left; 
+              }
+              .table th { 
+                background-color: #f2f2f2; 
+                font-weight: bold;
+              }
+              .table td:last-child, .table th:last-child { 
+                text-align: right; 
+              }
+              .total-section { 
+                text-align: right; 
+                margin-top: 20px; 
+                border-top: 2px solid #eee;
+                padding-top: 15px;
+              }
+              .total-row { 
+                display: flex; 
+                justify-content: flex-end; 
+                margin: 5px 0;
+              }
+              .total-label { 
+                width: 120px; 
+                text-align: right; 
+                margin-right: 20px;
+              }
+              .total-amount { 
+                width: 100px; 
+                text-align: right; 
+                font-weight: bold;
+              }
+              .final-total { 
+                font-size: 18px; 
+                border-top: 1px solid #ccc; 
+                padding-top: 10px; 
+                margin-top: 10px;
+              }
+              .notes { 
+                margin-top: 30px; 
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 5px;
+              }
+              .footer {
+                margin-top: 40px; 
+                text-align: center; 
+                font-size: 12px; 
+                color: #666;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="watermark">ORIGINAL INVOICE</div>
+            <div class="payment-status status-${invoice.status}">
+              ${invoice.status.toUpperCase()}
+            </div>
+            
+            <div class="header">
+              <div class="company-info">
+                <h2>${invoice.storeInfo.name || 'Hardware Store'}</h2>
+                <p>${invoice.storeInfo.address || ''}</p>
+                <p>Phone: ${invoice.storeInfo.phone || ''}</p>
+                <p>Email: ${invoice.storeInfo.email || ''}</p>
+                ${invoice.storeInfo.taxId ? `<p>GST/Tax ID: ${invoice.storeInfo.taxId}</p>` : ''}
+                ${invoice.storeInfo.website ? `<p>Website: ${invoice.storeInfo.website}</p>` : ''}
+              </div>
+              <div class="invoice-title">
+                <h1>INVOICE</h1>
+                <h2>${invoice.invoiceNumber}</h2>
+                <p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-IN')}</p>
+              </div>
+            </div>
+            
+            <div class="customer-info">
+              <h3 style="margin-top: 0;">Bill To:</h3>
+              <p><strong>${invoice.customerDetails.name}</strong></p>
+              ${invoice.customerDetails.address ? `<p>${invoice.customerDetails.address}</p>` : ''}
+              ${invoice.customerDetails.phone ? `<p>Phone: ${invoice.customerDetails.phone}</p>` : ''}
+              ${invoice.customerDetails.email ? `<p>Email: ${invoice.customerDetails.email}</p>` : ''}
+            </div>
+            
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Item Description</th>
+                  <th style="text-align: center; width: 80px;">Containers</th>
+                  <th style="text-align: right; width: 100px;">Rate per Container (₹)</th>
+                  <th style="text-align: right; width: 100px;">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${invoice.items.map(item => `
+                  <tr>
+                    <td>${item.finalName || `${item.productName} ${item.colorCode} ${item.volume}`.trim()}</td>
+                    <td style="text-align: center;">${item.quantity}</td>
+                    <td style="text-align: right;">₹${item.rate.toFixed(2)}</td>
+                    <td style="text-align: right;">₹${item.total.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            
+            <div class="total-section">
+              <div class="total-row">
+                <div class="total-label">Subtotal:</div>
+                <div class="total-amount">₹${invoice.subtotal.toFixed(2)}</div>
+              </div>
+              ${invoice.gstEnabled ? `
+              <div class="total-row">
+                <div class="total-label">GST (18%):</div>
+                <div class="total-amount">₹${invoice.tax.toFixed(2)}</div>
+              </div>
+              ` : ''}
+              <div class="total-row final-total">
+                <div class="total-label">Total Amount:</div>
+                <div class="total-amount">₹${invoice.total.toFixed(2)}</div>
+              </div>
+            </div>
+            
+            ${invoice.notes ? `
+              <div class="notes">
+                <h4 style="margin-top: 0;">Notes:</h4>
+                <p>${invoice.notes}</p>
+              </div>
+            ` : ''}
+            
+            <div class="footer">
+              <p>Thank you for your business!</p>
+              <p style="margin-top: 10px;">Status: ${invoice.status.toUpperCase()}</p>
+              <p style="margin-top: 5px; font-size: 10px;">${invoice.watermarkId}</p>
+            </div>
+          </body>
+        </html>
+      `;
+    }
     
     if (shouldSave) {
       saveInvoiceFile(invoice, printContent);

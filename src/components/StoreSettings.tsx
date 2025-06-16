@@ -1,359 +1,474 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Store, Save, Printer, Monitor } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import DesktopGuide from "./DesktopGuide";
+import { Store, Printer } from "lucide-react";
 
-interface StoreInfo {
+interface StoreSettingsData {
   name: string;
   address: string;
   phone: string;
   email: string;
   taxId: string;
   website: string;
-}
-
-interface PrinterSettings {
-  defaultPrinter: 'normal' | 'thermal';
-  normalPrinterName: string;
-  thermalPrinterName: string;
-  thermalPaperSize: '58mm' | '80mm';
-  autoprint: boolean;
-  printCopies: number;
+  printerType: 'normal' | 'thermal';
+  thermalSettings: {
+    paperWidth: string;
+    fontSize: string;
+    autoCut: boolean;
+    compactMode: boolean;
+  };
+  printSettings: {
+    includeLogo: boolean;
+    includeQR: boolean;
+    autoPrint: boolean;
+  };
 }
 
 const StoreSettings = () => {
-  const [storeInfo, setStoreInfo] = useState<StoreInfo>({
-    name: 'Jai Mata Di Saintary & Hardware Store',
+  const [formData, setFormData] = useState<StoreSettingsData>({
+    name: '',
     address: '',
     phone: '',
     email: '',
     taxId: '',
-    website: ''
+    website: '',
+    printerType: 'normal',
+    thermalSettings: {
+      paperWidth: '80mm',
+      fontSize: 'medium',
+      autoCut: false,
+      compactMode: false,
+    },
+    printSettings: {
+      includeLogo: false,
+      includeQR: false,
+      autoPrint: false,
+    },
   });
-
-  const [printerSettings, setPrinterSettings] = useState<PrinterSettings>({
-    defaultPrinter: 'normal',
-    normalPrinterName: '',
-    thermalPrinterName: '',
-    thermalPaperSize: '80mm',
-    autoprint: false,
-    printCopies: 1
-  });
-  
   const { toast } = useToast();
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('storeSettings');
     if (savedSettings) {
-      setStoreInfo(JSON.parse(savedSettings));
-    }
-
-    const savedPrinterSettings = localStorage.getItem('printerSettings');
-    if (savedPrinterSettings) {
-      setPrinterSettings(JSON.parse(savedPrinterSettings));
+      setFormData(JSON.parse(savedSettings));
     }
   }, []);
 
-  const handleSave = () => {
-    localStorage.setItem('storeSettings', JSON.stringify(storeInfo));
-    localStorage.setItem('printerSettings', JSON.stringify(printerSettings));
-    toast({
-      title: "Success",
-      description: "Settings saved successfully!",
-    });
+  const generateThermalPrintCSS = () => {
+    return `
+      @media print {
+        @page {
+          size: 80mm auto;
+          margin: 2mm;
+        }
+        
+        * {
+          font-family: 'Courier New', monospace !important;
+          font-size: 12px !important;
+          line-height: 1.2 !important;
+          color: black !important;
+          background: white !important;
+        }
+        
+        body {
+          width: 76mm;
+          margin: 0;
+          padding: 2mm;
+        }
+        
+        .thermal-header {
+          text-align: center;
+          border-bottom: 1px dashed black;
+          padding-bottom: 2mm;
+          margin-bottom: 2mm;
+        }
+        
+        .thermal-header h1 {
+          font-size: 14px !important;
+          font-weight: bold;
+          margin: 0 0 1mm 0;
+        }
+        
+        .thermal-header p {
+          font-size: 10px !important;
+          margin: 0;
+        }
+        
+        .thermal-section {
+          margin: 2mm 0;
+          padding: 1mm 0;
+        }
+        
+        .thermal-row {
+          display: flex;
+          justify-content: space-between;
+          margin: 1mm 0;
+        }
+        
+        .thermal-item {
+          border-bottom: 1px dotted black;
+          padding: 1mm 0;
+        }
+        
+        .thermal-total {
+          border-top: 1px dashed black;
+          border-bottom: 1px dashed black;
+          padding: 2mm 0;
+          margin: 2mm 0;
+          font-weight: bold;
+        }
+        
+        .thermal-footer {
+          text-align: center;
+          border-top: 1px dashed black;
+          padding-top: 2mm;
+          margin-top: 2mm;
+          font-size: 10px !important;
+        }
+        
+        .hide-on-thermal {
+          display: none !important;
+        }
+      }
+    `;
   };
 
-  const handleInputChange = (field: keyof StoreInfo, value: string) => {
-    setStoreInfo(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handlePrinterChange = (field: keyof PrinterSettings, value: any) => {
-    setPrinterSettings(prev => ({ ...prev, [field]: value }));
-  };
-
-  const testPrint = (printerType: 'normal' | 'thermal') => {
-    const testContent = `
+  const testThermalPrint = () => {
+    const thermalContent = `
       <html>
         <head>
-          <title>Test Print - ${printerType === 'thermal' ? 'Thermal' : 'Normal'}</title>
+          <title>Thermal Printer Test</title>
           <style>
-            body { 
-              font-family: ${printerType === 'thermal' ? 'monospace' : 'Arial, sans-serif'}; 
-              margin: ${printerType === 'thermal' ? '5px' : '20px'};
-              font-size: ${printerType === 'thermal' ? '12px' : '14px'};
-              ${printerType === 'thermal' ? 'width: ' + (printerSettings.thermalPaperSize === '58mm' ? '58mm' : '80mm') : ''};
-            }
-            .header { text-align: center; font-weight: bold; margin-bottom: 10px; }
-            .line { border-bottom: 1px dashed #000; margin: 5px 0; }
+            ${generateThermalPrintCSS()}
           </style>
         </head>
         <body>
-          <div class="header">${storeInfo.name || 'Jai Mata Di Saintary & Hardware Store'}</div>
-          <div class="header">TEST PRINT - ${printerType.toUpperCase()}</div>
-          <div class="line"></div>
-          <p>Date: ${new Date().toLocaleDateString('en-IN')}</p>
-          <p>Time: ${new Date().toLocaleTimeString('en-IN')}</p>
-          <p>Printer Type: ${printerType === 'thermal' ? 'Thermal Printer' : 'Normal Printer'}</p>
-          ${printerType === 'thermal' ? `<p>Paper Size: ${printerSettings.thermalPaperSize}</p>` : ''}
-          <div class="line"></div>
-          <p style="text-align: center;">Print Test Successful!</p>
-          <div class="line"></div>
+          <div class="thermal-header">
+            <h1>Jai Mata Di Saintary & Hardware Store</h1>
+            <p>Test Print - ${new Date().toLocaleString()}</p>
+          </div>
+          
+          <div class="thermal-section">
+            <div class="thermal-row">
+              <span>Item:</span>
+              <span>Test Product</span>
+            </div>
+            <div class="thermal-row">
+              <span>Qty:</span>
+              <span>1</span>
+            </div>
+            <div class="thermal-row">
+              <span>Rate:</span>
+              <span>Rs. 100.00</span>
+            </div>
+          </div>
+          
+          <div class="thermal-total">
+            <div class="thermal-row">
+              <span>TOTAL:</span>
+              <span>Rs. 100.00</span>
+            </div>
+          </div>
+          
+          <div class="thermal-footer">
+            <p>Thank you for your business!</p>
+            <p>Thermal Printer Test Successful</p>
+          </div>
         </body>
       </html>
     `;
     
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      printWindow.document.write(testContent);
+      printWindow.document.write(thermalContent);
       printWindow.document.close();
       printWindow.print();
     }
-    
+  };
+
+  const handleSave = () => {
+    localStorage.setItem('storeSettings', JSON.stringify(formData));
     toast({
-      title: "Test Print Sent",
-      description: `Test print sent to ${printerType} printer`,
+      title: "Settings Saved",
+      description: "Store settings have been successfully saved!",
     });
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your store information and application settings</p>
+      <div className="flex items-center space-x-2">
+        <Store className="h-6 w-6 text-gray-500" />
+        <h2 className="text-2xl font-bold">Store Settings</h2>
       </div>
 
-      <Tabs defaultValue="store" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="store">Store Information</TabsTrigger>
-          <TabsTrigger value="printing">Printing Settings</TabsTrigger>
-          <TabsTrigger value="desktop">Desktop Installation</TabsTrigger>
-          <TabsTrigger value="display">Display Settings</TabsTrigger>
-        </TabsList>
+      {/* Basic Store Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Basic Information</CardTitle>
+          <CardDescription>
+            Update your store details for invoices and customer communications
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Store Name</Label>
+              <Input
+                type="text"
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                type="tel"
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+          </div>
 
-        <TabsContent value="store" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5" />
-                Store Information
-              </CardTitle>
-              <CardDescription>
-                This information will appear on your invoices and documents
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                type="email"
+                id="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="website">Website URL</Label>
+              <Input
+                type="url"
+                id="website"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="address">Store Address</Label>
+            <Textarea
+              id="address"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              placeholder="Enter full store address"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="taxId">GST/Tax ID</Label>
+            <Input
+              type="text"
+              id="taxId"
+              value={formData.taxId}
+              onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Printer Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Printer className="h-5 w-5" />
+            Printer Configuration
+          </CardTitle>
+          <CardDescription>
+            Configure your printing preferences for invoices and receipts
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Printer Type Selection */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Default Printer Type</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className={`cursor-pointer transition-all ${formData.printerType === 'normal' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}>
+                <CardContent className="p-4" onClick={() => setFormData(prev => ({ ...prev, printerType: 'normal' }))}>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      name="printerType"
+                      value="normal"
+                      checked={formData.printerType === 'normal'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, printerType: e.target.value as 'normal' | 'thermal' }))}
+                      className="h-4 w-4 text-blue-600"
+                    />
+                    <div>
+                      <h3 className="font-semibold">Normal Printer (A4/Letter)</h3>
+                      <p className="text-sm text-gray-600">Standard desktop/office printers</p>
+                      <p className="text-xs text-gray-500">Best for detailed invoices with logos</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className={`cursor-pointer transition-all ${formData.printerType === 'thermal' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}>
+                <CardContent className="p-4" onClick={() => setFormData(prev => ({ ...prev, printerType: 'thermal' }))}>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      name="printerType"
+                      value="thermal"
+                      checked={formData.printerType === 'thermal'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, printerType: e.target.value as 'normal' | 'thermal' }))}
+                      className="h-4 w-4 text-blue-600"
+                    />
+                    <div>
+                      <h3 className="font-semibold">Thermal Printer (80mm)</h3>
+                      <p className="text-sm text-gray-600">Receipt/POS thermal printers</p>
+                      <p className="text-xs text-gray-500">Compact receipts, faster printing</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Thermal Printer Settings */}
+          {formData.printerType === 'thermal' && (
+            <div className="space-y-4 p-4 bg-orange-50 rounded-lg border">
+              <h4 className="font-semibold text-orange-800">Thermal Printer Settings</h4>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="storeName">Store Name *</Label>
-                  <Input
-                    id="storeName"
-                    value={storeInfo.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Jai Mata Di Saintary & Hardware Store"
-                  />
+                  <Label htmlFor="paperWidth">Paper Width</Label>
+                  <Select value={formData.thermalSettings.paperWidth} onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, thermalSettings: { ...prev.thermalSettings, paperWidth: value } }))
+                  }>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="80mm">80mm (Standard)</SelectItem>
+                      <SelectItem value="58mm">58mm (Compact)</SelectItem>
+                      <SelectItem value="110mm">110mm (Wide)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={storeInfo.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="+91 XXXXX XXXXX"
-                  />
+                  <Label htmlFor="fontSize">Font Size</Label>
+                  <Select value={formData.thermalSettings.fontSize} onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, thermalSettings: { ...prev.thermalSettings, fontSize: value } }))
+                  }>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="small">Small (10px)</SelectItem>
+                      <SelectItem value="medium">Medium (12px)</SelectItem>
+                      <SelectItem value="large">Large (14px)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Textarea
-                  id="address"
-                  value={storeInfo.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="Store address"
-                  className="min-h-[80px]"
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="autoCut"
+                  checked={formData.thermalSettings.autoCut}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    thermalSettings: { ...prev.thermalSettings, autoCut: e.target.checked }
+                  }))}
+                  className="h-4 w-4 text-blue-600"
                 />
+                <Label htmlFor="autoCut">Enable Auto-Cut (if supported)</Label>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={storeInfo.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="store@example.com"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="taxId">GST/Tax ID</Label>
-                  <Input
-                    id="taxId"
-                    value={storeInfo.taxId}
-                    onChange={(e) => handleInputChange('taxId', e.target.value)}
-                    placeholder="GST Number"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="website">Website (Optional)</Label>
-                <Input
-                  id="website"
-                  value={storeInfo.website}
-                  onChange={(e) => handleInputChange('website', e.target.value)}
-                  placeholder="https://yourstore.com"
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="compactMode"
+                  checked={formData.thermalSettings.compactMode}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    thermalSettings: { ...prev.thermalSettings, compactMode: e.target.checked }
+                  }))}
+                  className="h-4 w-4 text-blue-600"
                 />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="printing" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Printer className="h-5 w-5" />
-                Printer Configuration
-              </CardTitle>
-              <CardDescription>
-                Configure your printing preferences for invoices and receipts
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="defaultPrinter">Default Printer Type</Label>
-                    <Select value={printerSettings.defaultPrinter} onValueChange={(value: 'normal' | 'thermal') => handlePrinterChange('defaultPrinter', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select printer type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="normal">Normal Printer (A4)</SelectItem>
-                        <SelectItem value="thermal">Thermal Printer (Receipt)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="normalPrinter">Normal Printer Name</Label>
-                    <Input
-                      id="normalPrinter"
-                      value={printerSettings.normalPrinterName}
-                      onChange={(e) => handlePrinterChange('normalPrinterName', e.target.value)}
-                      placeholder="e.g., HP LaserJet, Canon PIXMA"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="thermalPrinter">Thermal Printer Name</Label>
-                    <Input
-                      id="thermalPrinter"
-                      value={printerSettings.thermalPrinterName}
-                      onChange={(e) => handlePrinterChange('thermalPrinterName', e.target.value)}
-                      placeholder="e.g., EPSON TM-T20, Star TSP650"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="thermalSize">Thermal Paper Size</Label>
-                    <Select value={printerSettings.thermalPaperSize} onValueChange={(value: '58mm' | '80mm') => handlePrinterChange('thermalPaperSize', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select paper size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="58mm">58mm (2.25")</SelectItem>
-                        <SelectItem value="80mm">80mm (3.15")</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="printCopies">Number of Copies</Label>
-                    <Input
-                      id="printCopies"
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={printerSettings.printCopies}
-                      onChange={(e) => handlePrinterChange('printCopies', parseInt(e.target.value))}
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="autoprint"
-                      checked={printerSettings.autoprint}
-                      onCheckedChange={(checked) => handlePrinterChange('autoprint', checked)}
-                    />
-                    <Label htmlFor="autoprint">Auto-print after invoice creation</Label>
-                  </div>
-                </div>
+                <Label htmlFor="compactMode">Compact Mode (Reduced spacing)</Label>
               </div>
 
-              <div className="border-t pt-4">
-                <div className="flex gap-4">
-                  <Button onClick={() => testPrint('normal')} variant="outline">
-                    Test Normal Printer
-                  </Button>
-                  <Button onClick={() => testPrint('thermal')} variant="outline">
-                    Test Thermal Printer
-                  </Button>
-                </div>
+              <Button 
+                onClick={testThermalPrint} 
+                variant="outline" 
+                size="sm"
+                className="w-full"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Test Thermal Print
+              </Button>
+            </div>
+          )}
+
+          {/* Print Options */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Print Options</Label>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="printLogo"
+                  checked={formData.printSettings.includeLogo}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    printSettings: { ...prev.printSettings, includeLogo: e.target.checked }
+                  }))}
+                  className="h-4 w-4 text-blue-600"
+                />
+                <Label htmlFor="printLogo">Include Store Logo</Label>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="desktop" className="space-y-6">
-          <DesktopGuide />
-        </TabsContent>
-
-        <TabsContent value="display" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Monitor className="h-5 w-5" />
-                Display Settings
-              </CardTitle>
-              <CardDescription>
-                Customize the application appearance for desktop use
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center py-8">
-                <Monitor className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Desktop Optimized</h3>
-                <p className="text-muted-foreground">
-                  The application is already optimized for desktop use with:
-                </p>
-                <ul className="text-sm text-muted-foreground mt-4 space-y-1">
-                  <li>• Keyboard shortcuts support</li>
-                  <li>• Large screen layouts</li>
-                  <li>• Print-friendly interfaces</li>
-                  <li>• Offline functionality</li>
-                </ul>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="printQR"
+                  checked={formData.printSettings.includeQR}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    printSettings: { ...prev.printSettings, includeQR: e.target.checked }
+                  }))}
+                  className="h-4 w-4 text-blue-600"
+                />
+                <Label htmlFor="printQR">Include QR Code for Digital Receipt</Label>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
-      <Button onClick={handleSave} className="w-full">
-        <Save className="h-4 w-4 mr-2" />
-        Save All Settings
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="autoPrint"
+                  checked={formData.printSettings.autoPrint}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    printSettings: { ...prev.printSettings, autoPrint: e.target.checked }
+                  }))}
+                  className="h-4 w-4 text-blue-600"
+                />
+                <Label htmlFor="autoPrint">Auto-print after creating invoice</Label>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white">
+        Save Settings
       </Button>
     </div>
   );
