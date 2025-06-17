@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Trash2, Plus, ArrowLeft, IndianRupee, Eye, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { InvoiceHeader } from "./invoice/InvoiceHeader";
@@ -58,6 +59,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const [gstEnabled, setGstEnabled] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'edit' | 'view'>('edit');
   const [createdInvoice, setCreatedInvoice] = useState<SavedInvoice | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid');
   const { toast } = useToast();
   
   // Form states
@@ -216,7 +218,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
     if (finalColorCode) finalName += ` ${finalColorCode}`;
     
     const newItem: InvoiceItem = {
-      id: `item_${Date.now()}`,
+      id: `item_${Date.now()}_${Math.random()}`, // More unique ID to ensure proper ordering
       productName: product.name,
       colorCode: finalColorCode,
       volume: selectedVolume,
@@ -227,6 +229,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
       unit: product.unit,
     };
 
+    // Add new item to the end of the array (below previous items)
     setInvoiceData(prev => ({ ...prev, items: [...prev.items, newItem] }));
     
     // Reset form
@@ -269,7 +272,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
     return { subtotal, tax, total };
   };
 
-  const handleSaveInvoice = (status: 'draft' | 'sent' | 'paid' = 'draft') => {
+  const handleSaveInvoice = (isDraft: boolean = false) => {
     if (!invoiceData.customerDetails.name.trim()) {
       toast({
         title: "Error",
@@ -292,6 +295,8 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
     const savedInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
     const storeInfo = JSON.parse(localStorage.getItem('storeSettings') || '{}');
     
+    const status = isDraft ? 'draft' : paymentStatus;
+    
     const newInvoice = {
       id: `inv_${Date.now()}`,
       ...invoiceData,
@@ -309,7 +314,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
     
     toast({
       title: "Success",
-      description: `Invoice ${status === 'draft' ? 'saved as draft' : 'created'} successfully!`,
+      description: `Invoice ${isDraft ? 'saved as draft' : 'created'} successfully!`,
     });
     
     // Switch to view mode and show the created invoice
@@ -594,7 +599,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               {/* Footer */}
               <div className="text-center pt-6 border-t border-gray-300">
                 <p className="text-gray-600 mb-2">Thank you for your business!</p>
-                <p className="text-xs text-gray-400">ID: {createdInvoice.watermarkId}</p>
+                <p style="margin-top: 10px; font-size: 10px;">ID: {createdInvoice.watermarkId}</p>
               </div>
             </CardContent>
           </Card>
@@ -627,16 +632,16 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
           <div className="flex gap-3">
             <Button 
               variant="outline" 
-              onClick={() => handleSaveInvoice('draft')} 
+              onClick={() => handleSaveInvoice(true)} 
               size="lg"
-              className="bg-gray-50 hover:bg-gray-100 border-gray-300"
+              className="bg-gray-50 hover:bg-gray-100 border-gray-300 px-8 py-3"
             >
               Save Draft
             </Button>
             <Button 
-              onClick={() => handleSaveInvoice('sent')} 
+              onClick={() => handleSaveInvoice(false)} 
               size="lg" 
-              className="bg-blue-600 hover:bg-blue-700 shadow-md"
+              className="bg-blue-600 hover:bg-blue-700 shadow-md px-8 py-3"
             >
               Create Invoice
             </Button>
@@ -860,6 +865,27 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
           gstEnabled={gstEnabled}
         />
 
+        {/* Payment Status */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle>Payment Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RadioGroup value={paymentStatus} onValueChange={(value: 'paid' | 'unpaid') => setPaymentStatus(value)}>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="unpaid" id="unpaid" />
+                  <Label htmlFor="unpaid" className="text-orange-600 font-medium">Unpaid</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="paid" id="paid" />
+                  <Label htmlFor="paid" className="text-green-600 font-medium">Paid</Label>
+                </div>
+              </div>
+            </RadioGroup>
+          </CardContent>
+        </Card>
+
         {/* Notes */}
         <Card className="shadow-lg">
           <CardHeader>
@@ -874,6 +900,25 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             />
           </CardContent>
         </Card>
+
+        {/* Action Buttons - Moved to Bottom */}
+        <div className="flex justify-center gap-4 pt-6">
+          <Button 
+            variant="outline" 
+            onClick={() => handleSaveInvoice(true)} 
+            size="lg"
+            className="bg-gray-50 hover:bg-gray-100 border-gray-300 px-8 py-3"
+          >
+            Save Draft
+          </Button>
+          <Button 
+            onClick={() => handleSaveInvoice(false)} 
+            size="lg" 
+            className="bg-blue-600 hover:bg-blue-700 shadow-md px-8 py-3"
+          >
+            Create Invoice
+          </Button>
+        </div>
       </div>
     </div>
   );
