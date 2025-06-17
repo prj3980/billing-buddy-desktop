@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Minus, Send, Save, Wifi, WifiOff } from "lucide-react";
+import { Plus, Minus, Send, Save, Wifi, WifiOff, Trash2 } from "lucide-react";
 
 interface InvoiceItem {
   id: string;
@@ -21,30 +23,54 @@ interface InvoiceItem {
 
 interface MobileInvoice {
   id: string;
+  invoiceNumber: string;
   customerDetails: {
     name: string;
     phone: string;
     address: string;
     email?: string;
   };
+  storeInfo: {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    taxId: string;
+    website: string;
+    logo?: string;
+    paymentQR?: string;
+  };
+  date: string;
   items: InvoiceItem[];
   subtotal: number;
   tax: number;
   total: number;
-  gstEnabled: boolean;
+  status: 'paid' | 'unpaid';
   notes: string;
-  status: 'draft' | 'sending' | 'sent' | 'printed' | 'failed';
+  watermarkId: string;
+  gstEnabled: boolean;
+  submitStatus: 'draft' | 'sending' | 'sent' | 'printed' | 'failed';
 }
 
 const Mobile = () => {
   const [invoice, setInvoice] = useState<MobileInvoice>({
     id: '',
+    invoiceNumber: '',
     customerDetails: {
       name: '',
       phone: '',
       address: '',
       email: ''
     },
+    storeInfo: {
+      name: 'Jai Mata Di Saintary & Hardware Store',
+      address: 'Hardware Store Address',
+      phone: '+91 12345 67890',
+      email: 'store@hardware.com',
+      taxId: 'GST123456789',
+      website: 'www.hardware.com'
+    },
+    date: new Date().toISOString().split('T')[0],
     items: [{
       id: '1',
       productName: '',
@@ -58,17 +84,49 @@ const Mobile = () => {
     subtotal: 0,
     tax: 0,
     total: 0,
-    gstEnabled: true,
+    status: 'unpaid',
     notes: '',
-    status: 'draft'
+    watermarkId: '',
+    gstEnabled: true,
+    submitStatus: 'draft'
   });
 
+  const [products, setProducts] = useState<Array<{name: string, colors: string[], volumes: string[]}>>([]);
   const [isOnline, setIsOnline] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const { toast } = useToast();
 
-  // Check connection status every 3 seconds
+  // Load products from localStorage
+  useEffect(() => {
+    const savedProducts = localStorage.getItem('products');
+    if (savedProducts) {
+      try {
+        setProducts(JSON.parse(savedProducts));
+      } catch (error) {
+        console.error('Failed to load products:', error);
+      }
+    }
+  }, []);
+
+  // Generate invoice number based on date
+  const generateInvoiceNumber = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    
+    // Get existing invoices to determine next number
+    const existingInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    const todayInvoices = existingInvoices.filter((inv: any) => 
+      inv.date && inv.date.startsWith(`${year}-${month}-${day}`)
+    );
+    
+    const nextNumber = todayInvoices.length + 1;
+    return `${year}${month}${day}-${String(nextNumber).padStart(3, '0')}`;
+  };
+
+  // Check connection status
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -100,13 +158,14 @@ const Mobile = () => {
     }
   }, []);
 
-  // Auto-save draft to localStorage
+  // Auto-save draft
   useEffect(() => {
     if (invoice.customerDetails.name || invoice.items.some(item => item.productName)) {
       localStorage.setItem('mobileDraft', JSON.stringify(invoice));
     }
   }, [invoice]);
 
+  // Calculate totals
   const calculateTotals = () => {
     const subtotal = invoice.items.reduce((sum, item) => sum + item.total, 0);
     const tax = invoice.gstEnabled ? subtotal * 0.18 : 0;
@@ -169,7 +228,7 @@ const Mobile = () => {
     });
   };
 
-  const submitInvoice = async () => {
+  const createInvoice = async () => {
     if (!invoice.customerDetails.name || !invoice.customerDetails.phone) {
       toast({
         title: "Validation Error",
@@ -199,41 +258,49 @@ const Mobile = () => {
     }
 
     setIsSubmitting(true);
-    setInvoice(prev => ({ ...prev, status: 'sending' }));
+    setInvoice(prev => ({ ...prev, submitStatus: 'sending' }));
 
     try {
+      const invoiceNumber = generateInvoiceNumber();
+      const completeInvoice = {
+        ...invoice,
+        id: Date.now().toString(),
+        invoiceNumber,
+        watermarkId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        date: new Date().toISOString()
+      };
+
       const response = await fetch('/api/invoices', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...invoice,
-          id: Date.now().toString(),
-          date: new Date().toISOString()
-        }),
+        body: JSON.stringify(completeInvoice),
       });
 
       if (response.ok) {
         const result = await response.json();
-        setInvoice(prev => ({ ...prev, status: 'sent', id: result.invoiceId }));
+        setInvoice(prev => ({ 
+          ...prev, 
+          submitStatus: 'sent', 
+          id: result.invoiceId,
+          invoiceNumber: result.invoiceNumber 
+        }));
         
-        // Poll for print status
         setTimeout(() => pollPrintStatus(result.invoiceId), 1000);
         
         toast({
-          title: "Invoice Sent",
+          title: "Invoice Created",
           description: `Invoice ${result.invoiceNumber} submitted to PC`,
         });
         
-        // Clear draft
         localStorage.removeItem('mobileDraft');
         
       } else {
         throw new Error('Failed to submit invoice');
       }
     } catch (error) {
-      setInvoice(prev => ({ ...prev, status: 'failed' }));
+      setInvoice(prev => ({ ...prev, submitStatus: 'failed' }));
       toast({
         title: "Submission Failed",
         description: "Failed to send invoice to PC. Saved as draft.",
@@ -251,14 +318,13 @@ const Mobile = () => {
       if (response.ok) {
         const status = await response.json();
         if (status.printed) {
-          setInvoice(prev => ({ ...prev, status: 'printed' }));
+          setInvoice(prev => ({ ...prev, submitStatus: 'printed' }));
           toast({
             title: "Invoice Printed",
             description: `Invoice ${status.invoiceNumber} printed successfully`,
           });
           setLastSyncTime(new Date());
         } else {
-          // Continue polling
           setTimeout(() => pollPrintStatus(invoiceId), 2000);
         }
       }
@@ -270,7 +336,17 @@ const Mobile = () => {
   const resetForm = () => {
     setInvoice({
       id: '',
+      invoiceNumber: '',
       customerDetails: { name: '', phone: '', address: '', email: '' },
+      storeInfo: {
+        name: 'Jai Mata Di Saintary & Hardware Store',
+        address: 'Hardware Store Address',
+        phone: '+91 12345 67890',
+        email: 'store@hardware.com',
+        taxId: 'GST123456789',
+        website: 'www.hardware.com'
+      },
+      date: new Date().toISOString().split('T')[0],
       items: [{
         id: '1',
         productName: '',
@@ -284,9 +360,11 @@ const Mobile = () => {
       subtotal: 0,
       tax: 0,
       total: 0,
-      gstEnabled: true,
+      status: 'unpaid',
       notes: '',
-      status: 'draft'
+      watermarkId: '',
+      gstEnabled: true,
+      submitStatus: 'draft'
     });
     localStorage.removeItem('mobileDraft');
   };
@@ -299,7 +377,7 @@ const Mobile = () => {
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Mobile Invoice
+                Mobile Invoice Creator
               </CardTitle>
               <div className="flex items-center gap-2">
                 {isOnline ? 
@@ -317,6 +395,33 @@ const Mobile = () => {
               </p>
             )}
           </CardHeader>
+        </Card>
+
+        {/* Invoice Info */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg">Invoice Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="invoiceDate" className="text-base">Date</Label>
+              <Input
+                id="invoiceDate"
+                type="date"
+                value={invoice.date}
+                onChange={(e) => setInvoice(prev => ({ ...prev, date: e.target.value }))}
+                className="h-12 text-base"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="gst-toggle" className="text-base">Include GST (18%)</Label>
+              <Switch
+                id="gst-toggle"
+                checked={invoice.gstEnabled}
+                onCheckedChange={(checked) => setInvoice(prev => ({ ...prev, gstEnabled: checked }))}
+              />
+            </div>
+          </CardContent>
         </Card>
 
         {/* Customer Details */}
@@ -365,6 +470,20 @@ const Mobile = () => {
                 placeholder="Customer address"
               />
             </div>
+            <div>
+              <Label htmlFor="customerEmail" className="text-base">Email</Label>
+              <Input
+                id="customerEmail"
+                type="email"
+                value={invoice.customerDetails.email || ''}
+                onChange={(e) => setInvoice(prev => ({
+                  ...prev,
+                  customerDetails: { ...prev.customerDetails, email: e.target.value }
+                }))}
+                className="h-12 text-base"
+                placeholder="Email address"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -372,7 +491,7 @@ const Mobile = () => {
         <Card className="shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Items</CardTitle>
+              <CardTitle className="text-lg">Products</CardTitle>
               <Button onClick={addItem} size="sm" className="h-10 w-10 p-0">
                 <Plus className="h-5 w-5" />
               </Button>
@@ -382,7 +501,7 @@ const Mobile = () => {
             {invoice.items.map((item, index) => (
               <div key={item.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">Item {index + 1}</span>
+                  <span className="font-medium text-sm">Product {index + 1}</span>
                   {invoice.items.length > 1 && (
                     <Button 
                       onClick={() => removeItem(index)} 
@@ -390,30 +509,42 @@ const Mobile = () => {
                       size="sm" 
                       className="h-8 w-8 p-0"
                     >
-                      <Minus className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
                 
                 <div>
-                  <Label className="text-base">Product Name</Label>
+                  <Label className="text-base">Product Name *</Label>
                   <Input
                     value={item.productName}
                     onChange={(e) => updateItem(index, 'productName', e.target.value)}
                     className="h-12 text-base"
-                    placeholder="Product name"
+                    placeholder="Select or enter product name"
+                    list={`products-${index}`}
                   />
+                  <datalist id={`products-${index}`}>
+                    {products.map((product, i) => (
+                      <option key={i} value={product.name} />
+                    ))}
+                  </datalist>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-base">Color</Label>
+                    <Label className="text-base">Color Code</Label>
                     <Input
                       value={item.colorCode}
                       onChange={(e) => updateItem(index, 'colorCode', e.target.value)}
                       className="h-12 text-base"
                       placeholder="Color"
+                      list={`colors-${index}`}
                     />
+                    <datalist id={`colors-${index}`}>
+                      {products.find(p => p.name === item.productName)?.colors.map((color, i) => (
+                        <option key={i} value={color} />
+                      ))}
+                    </datalist>
                   </div>
                   <div>
                     <Label className="text-base">Volume</Label>
@@ -422,13 +553,19 @@ const Mobile = () => {
                       onChange={(e) => updateItem(index, 'volume', e.target.value)}
                       className="h-12 text-base"
                       placeholder="Volume"
+                      list={`volumes-${index}`}
                     />
+                    <datalist id={`volumes-${index}`}>
+                      {products.find(p => p.name === item.productName)?.volumes.map((volume, i) => (
+                        <option key={i} value={volume} />
+                      ))}
+                    </datalist>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-base">Quantity</Label>
+                    <Label className="text-base">Quantity *</Label>
                     <Input
                       type="number"
                       value={item.quantity}
@@ -438,7 +575,7 @@ const Mobile = () => {
                     />
                   </div>
                   <div>
-                    <Label className="text-base">Rate (₹)</Label>
+                    <Label className="text-base">Rate (₹) *</Label>
                     <Input
                       type="number"
                       value={item.rate}
@@ -453,14 +590,50 @@ const Mobile = () => {
                 <div className="bg-gray-50 p-3 rounded">
                   <span className="text-base font-medium">Total: ₹{item.total.toFixed(2)}</span>
                 </div>
+                
+                {item.finalName && (
+                  <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
+                    <span className="text-sm text-blue-800 font-medium">
+                      Final Name: {item.finalName}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>
         </Card>
 
+        {/* Payment Status */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg">Payment Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RadioGroup
+              value={invoice.status}
+              onValueChange={(value: 'paid' | 'unpaid') => 
+                setInvoice(prev => ({ ...prev, status: value }))
+              }
+              className="flex gap-6"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="paid" id="paid" />
+                <Label htmlFor="paid" className="text-base">Paid</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="unpaid" id="unpaid" />
+                <Label htmlFor="unpaid" className="text-base">Unpaid</Label>
+              </div>
+            </RadioGroup>
+          </CardContent>
+        </Card>
+
         {/* Totals */}
         <Card className="shadow-lg">
-          <CardContent className="pt-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Invoice Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-3 text-base">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
@@ -483,14 +656,14 @@ const Mobile = () => {
         {/* Notes */}
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg">Notes</CardTitle>
+            <CardTitle className="text-lg">Additional Notes</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
               value={invoice.notes}
               onChange={(e) => setInvoice(prev => ({ ...prev, notes: e.target.value }))}
               className="min-h-20 text-base"
-              placeholder="Additional notes..."
+              placeholder="Additional notes or terms..."
             />
           </CardContent>
         </Card>
@@ -498,19 +671,19 @@ const Mobile = () => {
         {/* Actions */}
         <div className="space-y-3 pb-6">
           <Button
-            onClick={submitInvoice}
+            onClick={createInvoice}
             disabled={isSubmitting}
             className="w-full h-14 text-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Sending...
+                Creating Invoice...
               </span>
             ) : (
               <span className="flex items-center gap-2">
                 <Send className="h-5 w-5" />
-                Send Invoice to PC
+                Create Invoice
               </span>
             )}
           </Button>
@@ -535,22 +708,22 @@ const Mobile = () => {
         </div>
 
         {/* Status Display */}
-        {invoice.status !== 'draft' && (
+        {invoice.submitStatus !== 'draft' && (
           <Card className="shadow-lg">
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
-                  invoice.status === 'sending' ? 'bg-yellow-100 text-yellow-800' :
-                  invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                  invoice.status === 'printed' ? 'bg-green-100 text-green-800' :
+                  invoice.submitStatus === 'sending' ? 'bg-yellow-100 text-yellow-800' :
+                  invoice.submitStatus === 'sent' ? 'bg-blue-100 text-blue-800' :
+                  invoice.submitStatus === 'printed' ? 'bg-green-100 text-green-800' :
                   'bg-red-100 text-red-800'
                 }`}>
-                  {invoice.status === 'sending' && <div className="w-3 h-3 border border-yellow-600 border-t-transparent rounded-full animate-spin" />}
-                  Status: {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                  {invoice.submitStatus === 'sending' && <div className="w-3 h-3 border border-yellow-600 border-t-transparent rounded-full animate-spin" />}
+                  Status: {invoice.submitStatus.charAt(0).toUpperCase() + invoice.submitStatus.slice(1)}
                 </div>
-                {invoice.id && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Invoice ID: {invoice.id}
+                {invoice.invoiceNumber && (
+                  <p className="text-sm text-gray-600 mt-2 font-medium">
+                    Invoice Number: {invoice.invoiceNumber}
                   </p>
                 )}
               </div>

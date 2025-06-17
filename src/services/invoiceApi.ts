@@ -33,7 +33,7 @@ interface ApiInvoice {
   subtotal: number;
   tax: number;
   total: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
+  status: 'paid' | 'unpaid';
   notes: string;
   watermarkId: string;
   gstEnabled: boolean;
@@ -41,12 +41,10 @@ interface ApiInvoice {
 
 class InvoiceApiService {
   private static instance: InvoiceApiService;
-  private invoiceCounter: number;
 
   constructor() {
-    // Initialize counter from localStorage
-    const savedCounter = localStorage.getItem('invoiceCounter');
-    this.invoiceCounter = savedCounter ? parseInt(savedCounter) : 1000;
+    // Initialize with existing invoices if any
+    this.ensureInvoicesExist();
   }
 
   static getInstance(): InvoiceApiService {
@@ -56,10 +54,27 @@ class InvoiceApiService {
     return InvoiceApiService.instance;
   }
 
+  private ensureInvoicesExist() {
+    const existingInvoices = localStorage.getItem('invoices');
+    if (!existingInvoices) {
+      localStorage.setItem('invoices', JSON.stringify([]));
+    }
+  }
+
   private generateInvoiceNumber(): string {
-    this.invoiceCounter++;
-    localStorage.setItem('invoiceCounter', this.invoiceCounter.toString());
-    return `INV-${this.invoiceCounter}`;
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    
+    // Get existing invoices to determine next number
+    const existingInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    const todayInvoices = existingInvoices.filter((inv: any) => 
+      inv.date && inv.date.startsWith(`${year}-${month}-${day}`)
+    );
+    
+    const nextNumber = todayInvoices.length + 1;
+    return `${year}${month}${day}-${String(nextNumber).padStart(3, '0')}`;
   }
 
   private generateWatermarkId(): string {
@@ -84,21 +99,22 @@ class InvoiceApiService {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
-    const invoiceNumber = this.generateInvoiceNumber();
+    const invoiceNumber = invoiceData.invoiceNumber || this.generateInvoiceNumber();
     const watermarkId = this.generateWatermarkId();
     
     const completeInvoice: ApiInvoice = {
       ...invoiceData,
       invoiceNumber,
       watermarkId,
-      storeInfo: this.getStoreInfo(),
-      status: 'sent'
+      storeInfo: this.getStoreInfo()
     };
 
     // Save to PC's local storage
     const existingInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
     existingInvoices.push(completeInvoice);
     localStorage.setItem('invoices', JSON.stringify(existingInvoices));
+
+    console.log('Invoice saved:', completeInvoice);
 
     // Simulate auto-print
     setTimeout(() => {
@@ -119,6 +135,7 @@ class InvoiceApiService {
       invoiceNumber
     };
     localStorage.setItem('printStatus', JSON.stringify(printStatus));
+    console.log('Invoice marked as printed:', invoiceNumber);
   }
 
   async getPrintStatus(invoiceId: string): Promise<{ printed: boolean; invoiceNumber?: string }> {
@@ -130,6 +147,11 @@ class InvoiceApiService {
     // Simulate occasional connection issues
     await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
     return Math.random() > 0.05; // 95% success rate
+  }
+
+  async getInvoices(): Promise<ApiInvoice[]> {
+    const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    return invoices;
   }
 }
 
@@ -177,6 +199,21 @@ if (typeof window !== 'undefined') {
         });
       } catch (error) {
         return new Response(JSON.stringify({ error: 'Failed to process invoice' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    if (url.includes('/api/invoices') && init?.method === 'GET') {
+      try {
+        const invoices = await invoiceApi.getInvoices();
+        return new Response(JSON.stringify(invoices), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: 'Failed to fetch invoices' }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         });
