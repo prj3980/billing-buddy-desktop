@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -356,6 +357,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
             .qr-section { display: flex; align-items: center; gap: 15px; margin-top: 15px; }
             .qr-code { width: 100px; height: 100px; }
+            .watermark-id { margin-top: 10px; font-size: 10px; }
             @media print {
               body { padding: 0; }
               .no-print { display: none; }
@@ -445,7 +447,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
 
             <div class="footer">
               <p>Thank you for your business!</p>
-              <p style="margin-top: 10px; font-size: 10px;">ID: ${createdInvoice.watermarkId}</p>
+              <p class="watermark-id">ID: ${createdInvoice.watermarkId}</p>
             </div>
           </div>
         </body>
@@ -599,7 +601,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
               {/* Footer */}
               <div className="text-center pt-6 border-t border-gray-300">
                 <p className="text-gray-600 mb-2">Thank you for your business!</p>
-                <p style="margin-top: 10px; font-size: 10px;">ID: {createdInvoice.watermarkId}</p>
+                <p className="text-xs text-gray-500 mt-2">ID: {createdInvoice.watermarkId}</p>
               </div>
             </CardContent>
           </Card>
