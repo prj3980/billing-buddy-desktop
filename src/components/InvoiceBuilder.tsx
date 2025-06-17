@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, ArrowLeft, IndianRupee } from "lucide-react";
+import { Trash2, Plus, ArrowLeft, IndianRupee, Eye, Print } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { InvoiceHeader } from "./invoice/InvoiceHeader";
 import { CustomerDetails } from "./invoice/CustomerDetails";
@@ -33,13 +33,31 @@ interface InvoiceItem {
   unit: string;
 }
 
+interface SavedInvoice {
+  id: string;
+  invoiceNumber: string;
+  date: string;
+  customerDetails: { name: string; phone: string; address: string };
+  items: InvoiceItem[];
+  notes: string;
+  watermarkId: string;
+  storeInfo: any;
+  subtotal: number;
+  tax: number;
+  total: number;
+  gstEnabled: boolean;
+  status: string;
+}
+
 interface InvoiceBuilderProps {
-  onClose: () => void;
+  onClose: (newInvoiceId?: string) => void;
 }
 
 const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [gstEnabled, setGstEnabled] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'edit' | 'view'>('edit');
+  const [createdInvoice, setCreatedInvoice] = useState<SavedInvoice | null>(null);
   const { toast } = useToast();
   
   // Form states
@@ -49,6 +67,8 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const [selectedVolume, setSelectedVolume] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [rate, setRate] = useState<number>(0);
+
+  // ... keep existing code (generateInvoiceNumber, generateWatermarkId, invoiceData state, initializeAsianPaintsProducts, useEffect)
 
   const generateInvoiceNumber = () => {
     const today = new Date();
@@ -163,7 +183,6 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
     const savedProducts = localStorage.getItem('products');
     const existingProducts = savedProducts ? JSON.parse(savedProducts) : [];
     
-    // Add Asian Paints products if they don't exist
     const updatedProducts = [...existingProducts];
     asianPaintsProducts.forEach(newProduct => {
       if (!existingProducts.find((p: Product) => p.id === newProduct.id)) {
@@ -194,10 +213,9 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
 
     const finalColorCode = customColorCode || selectedColor;
     
-    // Build final name with container information
     let finalName = product.name;
-    if (finalColorCode) finalName += ` ${finalColorCode}`;
     if (selectedVolume) finalName += ` ${selectedVolume}`;
+    if (finalColorCode) finalName += ` ${finalColorCode}`;
     
     const newItem: InvoiceItem = {
       id: `item_${Date.now()}`,
@@ -296,19 +314,305 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
       description: `Invoice ${status === 'draft' ? 'saved as draft' : 'created'} successfully!`,
     });
     
-    onClose();
+    // Switch to view mode and show the created invoice
+    setCreatedInvoice(newInvoice);
+    setViewMode('view');
+  };
+
+  const handlePrintInvoice = () => {
+    if (!createdInvoice) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const storeInfo = createdInvoice.storeInfo || {};
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Invoice ${createdInvoice.invoiceNumber}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; padding: 20px; background: white; }
+            .invoice-container { max-width: 800px; margin: 0 auto; }
+            .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #333; }
+            .store-info h1 { color: #e11d48; font-size: 24px; margin-bottom: 5px; }
+            .store-info p { margin: 2px 0; font-size: 14px; }
+            .invoice-details { text-align: right; }
+            .customer-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            .customer-section h3 { margin-bottom: 10px; color: #333; }
+            .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .items-table th { background: #e11d48; color: white; padding: 12px 8px; text-align: left; font-weight: bold; }
+            .items-table td { padding: 10px 8px; border-bottom: 1px solid #ddd; }
+            .items-table tr:nth-child(even) { background: #f8f9fa; }
+            .totals { margin-top: 20px; }
+            .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+            .total-row.final { font-weight: bold; font-size: 18px; border-top: 2px solid #333; padding-top: 15px; color: #e11d48; }
+            .notes { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            .qr-section { display: flex; align-items: center; gap: 15px; margin-top: 15px; }
+            .qr-code { width: 100px; height: 100px; }
+            @media print {
+              body { padding: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="header">
+              <div class="store-info">
+                ${storeInfo.logo ? `<img src="${storeInfo.logo}" alt="Store Logo" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 10px;">` : ''}
+                <h1>${storeInfo.name || 'Jai Mata Di Saintary & Hardware Store'}</h1>
+                <p>${storeInfo.address || 'Store Address'}</p>
+                <p>Phone: ${storeInfo.phone || 'Store Phone'}</p>
+                ${storeInfo.email ? `<p>Email: ${storeInfo.email}</p>` : ''}
+                ${storeInfo.gst ? `<p>GST: ${storeInfo.gst}</p>` : ''}
+              </div>
+              <div class="invoice-details">
+                <h2>INVOICE</h2>
+                <p><strong>Invoice #:</strong> ${createdInvoice.invoiceNumber}</p>
+                <p><strong>Date:</strong> ${new Date(createdInvoice.date).toLocaleDateString()}</p>
+                <p><strong>Status:</strong> ${createdInvoice.status.toUpperCase()}</p>
+              </div>
+            </div>
+
+            <div class="customer-section">
+              <h3>Bill To:</h3>
+              <p><strong>${createdInvoice.customerDetails.name}</strong></p>
+              <p>Phone: ${createdInvoice.customerDetails.phone}</p>
+              <p>${createdInvoice.customerDetails.address}</p>
+            </div>
+
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th style="text-align: center;">Qty</th>
+                  <th style="text-align: right;">Rate</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${createdInvoice.items.map(item => `
+                  <tr>
+                    <td>${item.finalName}</td>
+                    <td style="text-align: center;">${item.quantity}</td>
+                    <td style="text-align: right;">₹${item.rate.toFixed(2)}</td>
+                    <td style="text-align: right;">₹${item.total.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+
+            <div class="totals">
+              <div class="total-row">
+                <span>Subtotal:</span>
+                <span>₹${createdInvoice.subtotal.toFixed(2)}</span>
+              </div>
+              ${createdInvoice.gstEnabled ? `
+                <div class="total-row">
+                  <span>GST (18%):</span>
+                  <span>₹${createdInvoice.tax.toFixed(2)}</span>
+                </div>
+              ` : ''}
+              <div class="total-row final">
+                <span>Total Amount:</span>
+                <span>₹${createdInvoice.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            ${createdInvoice.notes ? `
+              <div class="notes">
+                <h4>Notes:</h4>
+                <p>${createdInvoice.notes}</p>
+              </div>
+            ` : ''}
+
+            ${storeInfo.paymentQR ? `
+              <div class="qr-section">
+                <div>
+                  <h4>Payment QR Code:</h4>
+                  <p>Scan to pay</p>
+                </div>
+                <img src="${storeInfo.paymentQR}" alt="Payment QR" class="qr-code">
+              </div>
+            ` : ''}
+
+            <div class="footer">
+              <p>Thank you for your business!</p>
+              <p style="margin-top: 10px; font-size: 10px;">ID: ${createdInvoice.watermarkId}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const { subtotal, tax, total } = calculateTotals();
   const selectedProductData = products.find(p => p.id === selectedProduct);
 
+  // View mode - show completed invoice
+  if (viewMode === 'view' && createdInvoice) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-lg">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={() => onClose(createdInvoice.id)} size="lg" className="hover:bg-gray-50">
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Back to Invoices
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-green-700">Invoice Created Successfully!</h1>
+                <p className="text-gray-600">Invoice #{createdInvoice.invoiceNumber}</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setViewMode('edit')} 
+                size="lg"
+                className="bg-blue-50 hover:bg-blue-100 border-blue-300"
+              >
+                <Eye className="h-5 w-5 mr-2" />
+                Edit Invoice
+              </Button>
+              <Button 
+                onClick={handlePrintInvoice} 
+                size="lg" 
+                className="bg-green-600 hover:bg-green-700 shadow-md"
+              >
+                <Print className="h-5 w-5 mr-2" />
+                Print Invoice
+              </Button>
+            </div>
+          </div>
+
+          {/* Invoice Preview */}
+          <Card className="shadow-lg">
+            <CardContent className="p-8">
+              {/* Store Header */}
+              <div className="flex justify-between items-start mb-8 pb-6 border-b-2 border-gray-300">
+                <div className="flex items-center gap-4">
+                  {createdInvoice.storeInfo?.logo && (
+                    <img src={createdInvoice.storeInfo.logo} alt="Store Logo" className="w-20 h-20 object-contain" />
+                  )}
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                      {createdInvoice.storeInfo?.name || 'Jai Mata Di Saintary & Hardware Store'}
+                    </h1>
+                    <p className="text-gray-600">{createdInvoice.storeInfo?.address || 'Store Address'}</p>
+                    <p className="text-gray-600">Phone: {createdInvoice.storeInfo?.phone || 'Store Phone'}</p>
+                    {createdInvoice.storeInfo?.email && <p className="text-gray-600">Email: {createdInvoice.storeInfo.email}</p>}
+                    {createdInvoice.storeInfo?.gst && <p className="text-gray-600">GST: {createdInvoice.storeInfo.gst}</p>}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">INVOICE</h2>
+                  <p className="text-gray-600"><strong>Invoice #:</strong> {createdInvoice.invoiceNumber}</p>
+                  <p className="text-gray-600"><strong>Date:</strong> {new Date(createdInvoice.date).toLocaleDateString()}</p>
+                  <p className="text-gray-600"><strong>Status:</strong> {createdInvoice.status.toUpperCase()}</p>
+                </div>
+              </div>
+
+              {/* Customer Details */}
+              <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3 text-gray-900">Bill To:</h3>
+                <p className="font-semibold text-gray-900">{createdInvoice.customerDetails.name}</p>
+                <p className="text-gray-600">Phone: {createdInvoice.customerDetails.phone}</p>
+                <p className="text-gray-600">{createdInvoice.customerDetails.address}</p>
+              </div>
+
+              {/* Items Table */}
+              <div className="mb-8">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-900 text-white">
+                      <th className="text-left p-3 border">Item</th>
+                      <th className="text-center p-3 border">Qty</th>
+                      <th className="text-right p-3 border">Rate</th>
+                      <th className="text-right p-3 border">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {createdInvoice.items.map((item, index) => (
+                      <tr key={item.id} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="p-3 border">{item.finalName}</td>
+                        <td className="p-3 border text-center">{item.quantity}</td>
+                        <td className="p-3 border text-right">₹{item.rate.toFixed(2)}</td>
+                        <td className="p-3 border text-right">₹{item.total.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totals */}
+              <div className="flex justify-end mb-8">
+                <div className="w-64 space-y-2">
+                  <div className="flex justify-between py-2">
+                    <span>Subtotal:</span>
+                    <span>₹{createdInvoice.subtotal.toFixed(2)}</span>
+                  </div>
+                  {createdInvoice.gstEnabled && (
+                    <div className="flex justify-between py-2">
+                      <span>GST (18%):</span>
+                      <span>₹{createdInvoice.tax.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-3 border-t-2 border-gray-300 font-bold text-lg">
+                    <span>Total Amount:</span>
+                    <span className="text-green-600">₹{createdInvoice.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {createdInvoice.notes && (
+                <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold mb-2">Notes:</h4>
+                  <p className="text-gray-600">{createdInvoice.notes}</p>
+                </div>
+              )}
+
+              {/* Payment QR */}
+              {createdInvoice.storeInfo?.paymentQR && (
+                <div className="flex items-center gap-4 mb-8">
+                  <div>
+                    <h4 className="font-semibold mb-1">Payment QR Code:</h4>
+                    <p className="text-gray-600">Scan to pay</p>
+                  </div>
+                  <img src={createdInvoice.storeInfo.paymentQR} alt="Payment QR" className="w-24 h-24 object-contain border rounded" />
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="text-center pt-6 border-t border-gray-300">
+                <p className="text-gray-600 mb-2">Thank you for your business!</p>
+                <p className="text-xs text-gray-400">ID: {createdInvoice.watermarkId}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Edit mode - show invoice builder
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-lg">
           <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={onClose} size="lg" className="hover:bg-gray-50">
+            <Button variant="outline" onClick={() => onClose()} size="lg" className="hover:bg-gray-50">
               <ArrowLeft className="h-5 w-5 mr-2" />
               Back to Invoices
             </Button>
@@ -371,8 +675,8 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Add Item Form */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border">
+            {/* Add Item Form - Horizontal Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border">
               <div>
                 <Label className="text-sm font-semibold text-gray-700">Product *</Label>
                 <Select value={selectedProduct} onValueChange={setSelectedProduct}>
@@ -388,6 +692,24 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {selectedProductData?.volumes && selectedProductData.volumes.length > 0 && (
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Volume</Label>
+                  <Select value={selectedVolume} onValueChange={setSelectedVolume}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select volume" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedProductData.volumes.map((volume, index) => (
+                        <SelectItem key={index} value={volume}>
+                          {volume}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div>
                 <Label className="text-sm font-semibold text-gray-700">
@@ -420,21 +742,10 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                 />
               </div>
 
-              <div>
-                <Label className="text-sm font-semibold text-gray-700">Total</Label>
-                <div className="flex items-center h-10 px-3 py-2 border bg-white rounded-md font-semibold mt-1 text-green-600">
-                  <IndianRupee className="h-4 w-4 mr-1" />
-                  {(quantity * rate).toFixed(2)}
-                </div>
-              </div>
-            </div>
-
-            {/* Color and Volume Options */}
-            {selectedProductData?.hasVariableColors && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border">
-                {selectedProductData.predefinedColors && selectedProductData.predefinedColors.length > 0 && (
-                  <div>
-                    <Label className="text-sm font-semibold">Predefined Color</Label>
+              {selectedProductData?.hasVariableColors && (
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Color</Label>
+                  {selectedProductData.predefinedColors && selectedProductData.predefinedColors.length > 0 ? (
                     <Select value={selectedColor} onValueChange={setSelectedColor}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select color" />
@@ -447,39 +758,40 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                )}
-                <div>
-                  <Label className="text-sm font-semibold">Custom Color Code</Label>
-                  <Input
-                    value={customColorCode}
-                    onChange={(e) => setCustomColorCode(e.target.value)}
-                    placeholder="Enter custom color"
-                    className="mt-1"
-                  />
+                  ) : (
+                    <Input
+                      value={customColorCode}
+                      onChange={(e) => setCustomColorCode(e.target.value)}
+                      placeholder="Enter color"
+                      className="mt-1"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Custom Color Input - Show separately if both predefined and custom are available */}
+            {selectedProductData?.hasVariableColors && selectedProductData.predefinedColors && selectedProductData.predefinedColors.length > 0 && (
+              <div className="max-w-md">
+                <Label className="text-sm font-semibold">Custom Color Code</Label>
+                <Input
+                  value={customColorCode}
+                  onChange={(e) => setCustomColorCode(e.target.value)}
+                  placeholder="Or enter custom color"
+                  className="mt-1"
+                />
+              </div>
+            )}
+
+            {/* Total and Add Button */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Label className="text-sm font-semibold text-gray-700">Total Amount:</Label>
+                <div className="flex items-center h-10 px-3 py-2 border bg-white rounded-md font-semibold text-green-600 text-lg">
+                  <IndianRupee className="h-5 w-5 mr-1" />
+                  {(quantity * rate).toFixed(2)}
                 </div>
               </div>
-            )}
-
-            {selectedProductData?.volumes && selectedProductData.volumes.length > 0 && (
-              <div className="max-w-md">
-                <Label className="text-sm font-semibold">Volume</Label>
-                <Select value={selectedVolume} onValueChange={setSelectedVolume}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select volume" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedProductData.volumes.map((volume, index) => (
-                      <SelectItem key={index} value={volume}>
-                        {volume}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="flex justify-center">
               <Button 
                 onClick={handleAddItem} 
                 className="bg-green-600 hover:bg-green-700 text-lg py-3 px-8 shadow-lg"
