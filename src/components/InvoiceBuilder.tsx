@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, ArrowLeft, IndianRupee, Eye, Print } from "lucide-react";
+import { Trash2, Plus, ArrowLeft, IndianRupee, Eye, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { InvoiceHeader } from "./invoice/InvoiceHeader";
 import { CustomerDetails } from "./invoice/CustomerDetails";
@@ -67,8 +67,6 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const [selectedVolume, setSelectedVolume] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [rate, setRate] = useState<number>(0);
-
-  // ... keep existing code (generateInvoiceNumber, generateWatermarkId, invoiceData state, initializeAsianPaintsProducts, useEffect)
 
   const generateInvoiceNumber = () => {
     const today = new Date();
@@ -489,7 +487,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                 size="lg" 
                 className="bg-green-600 hover:bg-green-700 shadow-md"
               >
-                <Print className="h-5 w-5 mr-2" />
+                <Printer className="h-5 w-5 mr-2" />
                 Print Invoice
               </Button>
             </div>
