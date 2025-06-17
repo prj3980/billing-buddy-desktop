@@ -7,4 +7,3 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Add any API methods you need here
   // Example: openFile: () => ipcRenderer.invoke('dialog:openFile')
 });
-
