@@ -1,3 +1,4 @@
+
 name: Build Electron App
 
 on:
@@ -12,7 +13,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     strategy:
       matrix:
@@ -20,41 +21,39 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-
-      - name: Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install Wine dependencies for Windows build
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo mkdir -pm755 /etc/apt/keyrings
-          sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
-          sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/$(lsb_release -cs)/winehq-$(lsb_release -cs).sources
-          sudo apt update
-          sudo apt install --install-recommends winehq-stable -y
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build app
+      - name: Install Electron dependencies
+        run: |
+          npm install electron@latest electron-builder@latest cross-env@latest concurrently@latest wait-on@latest --save-dev
+
+      - name: Build React app
         run: npm run build
 
-      - name: Package Electron App for Windows
-        run: npx electron-builder --win --x64 --publish never
+      - name: Build Electron app for Windows
+        run: npx electron-builder --win --x64 --publish never --config electron-builder.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Windows exe artifact
+      - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
-          name: electron-windows-build
-          path: dist/*.exe
+          name: billing-buddy-windows
+          path: dist-electron/*.exe
+
+      - name: Release on tag
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist-electron/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

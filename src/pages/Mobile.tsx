@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Minus, Send, Save, Wifi, WifiOff, Trash2 } from "lucide-react";
+import { Plus, Minus, Send, Save, Wifi, WifiOff, Trash2, IndianRupee } from "lucide-react";
 
 interface InvoiceItem {
   id: string;
@@ -94,36 +95,38 @@ const Mobile = () => {
   const [products, setProducts] = useState<Array<{name: string, colors: string[], volumes: string[]}>>([]);
   const [isOnline, setIsOnline] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>('');
   const { toast } = useToast();
 
-  // Load products from localStorage
-  useEffect(() => {
-    const savedProducts = localStorage.getItem('products');
-    if (savedProducts) {
-      try {
+  // Get next invoice number from PC
+  const getNextInvoiceNumber = async () => {
+    try {
+      const response = await fetch('/api/invoices/next-number');
+      if (response.ok) {
+        const data = await response.json();
+        setNextInvoiceNumber(data.nextInvoiceNumber);
+      }
+    } catch (error) {
+      console.error('Failed to get next invoice number:', error);
+    }
+  };
+
+  // Load products from PC
+  const loadProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error('Failed to load products:', error);
+      // Fallback to localStorage
+      const savedProducts = localStorage.getItem('products');
+      if (savedProducts) {
         setProducts(JSON.parse(savedProducts));
-      } catch (error) {
-        console.error('Failed to load products:', error);
       }
     }
-  }, []);
-
-  // Generate invoice number based on date
-  const generateInvoiceNumber = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    
-    // Get existing invoices to determine next number
-    const existingInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    const todayInvoices = existingInvoices.filter((inv: any) => 
-      inv.date && inv.date.startsWith(`${year}-${month}-${day}`)
-    );
-    
-    const nextNumber = todayInvoices.length + 1;
-    return `${year}${month}${day}-${String(nextNumber).padStart(3, '0')}`;
   };
 
   // Check connection status
@@ -132,9 +135,13 @@ const Mobile = () => {
       try {
         const response = await fetch('/api/health', { 
           method: 'GET',
-          timeout: 2000 
-        } as any);
+          signal: AbortSignal.timeout(2000)
+        });
         setIsOnline(response.ok);
+        if (response.ok) {
+          await getNextInvoiceNumber();
+          await loadProducts();
+        }
       } catch {
         setIsOnline(false);
       }
@@ -261,11 +268,9 @@ const Mobile = () => {
     setInvoice(prev => ({ ...prev, submitStatus: 'sending' }));
 
     try {
-      const invoiceNumber = generateInvoiceNumber();
       const completeInvoice = {
         ...invoice,
         id: Date.now().toString(),
-        invoiceNumber,
         watermarkId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         date: new Date().toISOString()
       };
@@ -295,6 +300,7 @@ const Mobile = () => {
         });
         
         localStorage.removeItem('mobileDraft');
+        await getNextInvoiceNumber(); // Refresh next invoice number
         
       } else {
         throw new Error('Failed to submit invoice');
@@ -323,7 +329,6 @@ const Mobile = () => {
             title: "Invoice Printed",
             description: `Invoice ${status.invoiceNumber} printed successfully`,
           });
-          setLastSyncTime(new Date());
         } else {
           setTimeout(() => pollPrintStatus(invoiceId), 2000);
         }
@@ -370,310 +375,331 @@ const Mobile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <Card className="shadow-lg">
+        <Card>
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Mobile Invoice Creator
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                {isOnline ? 
-                  <Wifi className="h-5 w-5 text-green-600" /> : 
-                  <WifiOff className="h-5 w-5 text-red-600" />
-                }
-                <span className="text-xs text-gray-500">
-                  {isOnline ? 'Connected' : 'Offline'}
-                </span>
-              </div>
-            </div>
-            {lastSyncTime && (
-              <p className="text-xs text-gray-500">
-                Last sync: {lastSyncTime.toLocaleTimeString()}
-              </p>
-            )}
-          </CardHeader>
-        </Card>
-
-        {/* Invoice Info */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg">Invoice Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="invoiceDate" className="text-base">Date</Label>
-              <Input
-                id="invoiceDate"
-                type="date"
-                value={invoice.date}
-                onChange={(e) => setInvoice(prev => ({ ...prev, date: e.target.value }))}
-                className="h-12 text-base"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="gst-toggle" className="text-base">Include GST (18%)</Label>
-              <Switch
-                id="gst-toggle"
-                checked={invoice.gstEnabled}
-                onCheckedChange={(checked) => setInvoice(prev => ({ ...prev, gstEnabled: checked }))}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Customer Details */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg">Customer Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="customerName" className="text-base">Name *</Label>
-              <Input
-                id="customerName"
-                value={invoice.customerDetails.name}
-                onChange={(e) => setInvoice(prev => ({
-                  ...prev,
-                  customerDetails: { ...prev.customerDetails, name: e.target.value }
-                }))}
-                className="h-12 text-base"
-                placeholder="Customer name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="customerPhone" className="text-base">Phone *</Label>
-              <Input
-                id="customerPhone"
-                value={invoice.customerDetails.phone}
-                onChange={(e) => setInvoice(prev => ({
-                  ...prev,
-                  customerDetails: { ...prev.customerDetails, phone: e.target.value }
-                }))}
-                className="h-12 text-base"
-                placeholder="Phone number"
-                type="tel"
-              />
-            </div>
-            <div>
-              <Label htmlFor="customerAddress" className="text-base">Address</Label>
-              <Textarea
-                id="customerAddress"
-                value={invoice.customerDetails.address}
-                onChange={(e) => setInvoice(prev => ({
-                  ...prev,
-                  customerDetails: { ...prev.customerDetails, address: e.target.value }
-                }))}
-                className="min-h-20 text-base"
-                placeholder="Customer address"
-              />
-            </div>
-            <div>
-              <Label htmlFor="customerEmail" className="text-base">Email</Label>
-              <Input
-                id="customerEmail"
-                type="email"
-                value={invoice.customerDetails.email || ''}
-                onChange={(e) => setInvoice(prev => ({
-                  ...prev,
-                  customerDetails: { ...prev.customerDetails, email: e.target.value }
-                }))}
-                className="h-12 text-base"
-                placeholder="Email address"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Items */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Products</CardTitle>
-              <Button onClick={addItem} size="sm" className="h-10 w-10 p-0">
-                <Plus className="h-5 w-5" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {invoice.items.map((item, index) => (
-              <div key={item.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">Product {index + 1}</span>
-                  {invoice.items.length > 1 && (
-                    <Button 
-                      onClick={() => removeItem(index)} 
-                      variant="destructive" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+              <CardTitle className="text-2xl">Create Invoice</CardTitle>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  {isOnline ? 
+                    <Wifi className="h-5 w-5 text-green-600" /> : 
+                    <WifiOff className="h-5 w-5 text-red-600" />
+                  }
+                  <span className="text-sm text-gray-600">
+                    {isOnline ? 'Connected to PC' : 'Offline Mode'}
+                  </span>
                 </div>
-                
-                <div>
-                  <Label className="text-base">Product Name *</Label>
-                  <Input
-                    value={item.productName}
-                    onChange={(e) => updateItem(index, 'productName', e.target.value)}
-                    className="h-12 text-base"
-                    placeholder="Select or enter product name"
-                    list={`products-${index}`}
-                  />
-                  <datalist id={`products-${index}`}>
-                    {products.map((product, i) => (
-                      <option key={i} value={product.name} />
-                    ))}
-                  </datalist>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-base">Color Code</Label>
-                    <Input
-                      value={item.colorCode}
-                      onChange={(e) => updateItem(index, 'colorCode', e.target.value)}
-                      className="h-12 text-base"
-                      placeholder="Color"
-                      list={`colors-${index}`}
-                    />
-                    <datalist id={`colors-${index}`}>
-                      {products.find(p => p.name === item.productName)?.colors.map((color, i) => (
-                        <option key={i} value={color} />
-                      ))}
-                    </datalist>
-                  </div>
-                  <div>
-                    <Label className="text-base">Volume</Label>
-                    <Input
-                      value={item.volume}
-                      onChange={(e) => updateItem(index, 'volume', e.target.value)}
-                      className="h-12 text-base"
-                      placeholder="Volume"
-                      list={`volumes-${index}`}
-                    />
-                    <datalist id={`volumes-${index}`}>
-                      {products.find(p => p.name === item.productName)?.volumes.map((volume, i) => (
-                        <option key={i} value={volume} />
-                      ))}
-                    </datalist>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-base">Quantity *</Label>
-                    <Input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                      className="h-12 text-base"
-                      min="1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-base">Rate (₹) *</Label>
-                    <Input
-                      type="number"
-                      value={item.rate}
-                      onChange={(e) => updateItem(index, 'rate', parseFloat(e.target.value) || 0)}
-                      className="h-12 text-base"
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 p-3 rounded">
-                  <span className="text-base font-medium">Total: ₹{item.total.toFixed(2)}</span>
-                </div>
-                
-                {item.finalName && (
-                  <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
-                    <span className="text-sm text-blue-800 font-medium">
-                      Final Name: {item.finalName}
-                    </span>
+                {nextInvoiceNumber && (
+                  <div className="text-sm text-gray-600">
+                    Next: <span className="font-medium">{nextInvoiceNumber}</span>
                   </div>
                 )}
               </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Payment Status */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg">Payment Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={invoice.status}
-              onValueChange={(value: 'paid' | 'unpaid') => 
-                setInvoice(prev => ({ ...prev, status: value }))
-              }
-              className="flex gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="paid" id="paid" />
-                <Label htmlFor="paid" className="text-base">Paid</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="unpaid" id="unpaid" />
-                <Label htmlFor="unpaid" className="text-base">Unpaid</Label>
-              </div>
-            </RadioGroup>
-          </CardContent>
-        </Card>
-
-        {/* Totals */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg">Invoice Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-base">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>₹{invoice.subtotal.toFixed(2)}</span>
-              </div>
-              {invoice.gstEnabled && (
-                <div className="flex justify-between">
-                  <span>GST (18%):</span>
-                  <span>₹{invoice.tax.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-lg font-bold border-t pt-3">
-                <span>Total:</span>
-                <span>₹{invoice.total.toFixed(2)}</span>
-              </div>
             </div>
-          </CardContent>
+          </CardHeader>
         </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-6">
+            {/* Customer Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Customer Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="customerName">Customer Name *</Label>
+                  <Input
+                    id="customerName"
+                    value={invoice.customerDetails.name}
+                    onChange={(e) => setInvoice(prev => ({
+                      ...prev,
+                      customerDetails: { ...prev.customerDetails, name: e.target.value }
+                    }))}
+                    placeholder="Enter customer name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customerPhone">Phone Number *</Label>
+                  <Input
+                    id="customerPhone"
+                    value={invoice.customerDetails.phone}
+                    onChange={(e) => setInvoice(prev => ({
+                      ...prev,
+                      customerDetails: { ...prev.customerDetails, phone: e.target.value }
+                    }))}
+                    placeholder="Enter phone number"
+                    type="tel"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customerEmail">Email Address</Label>
+                  <Input
+                    id="customerEmail"
+                    type="email"
+                    value={invoice.customerDetails.email || ''}
+                    onChange={(e) => setInvoice(prev => ({
+                      ...prev,
+                      customerDetails: { ...prev.customerDetails, email: e.target.value }
+                    }))}
+                    placeholder="Enter email address"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customerAddress">Address</Label>
+                  <Textarea
+                    id="customerAddress"
+                    value={invoice.customerDetails.address}
+                    onChange={(e) => setInvoice(prev => ({
+                      ...prev,
+                      customerDetails: { ...prev.customerDetails, address: e.target.value }
+                    }))}
+                    placeholder="Enter customer address"
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Invoice Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoice Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="invoiceDate">Invoice Date</Label>
+                  <Input
+                    id="invoiceDate"
+                    type="date"
+                    value={invoice.date}
+                    onChange={(e) => setInvoice(prev => ({ ...prev, date: e.target.value }))}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="gst-toggle">Include GST (18%)</Label>
+                  <Switch
+                    id="gst-toggle"
+                    checked={invoice.gstEnabled}
+                    onCheckedChange={(checked) => setInvoice(prev => ({ ...prev, gstEnabled: checked }))}
+                  />
+                </div>
+                <div>
+                  <Label>Payment Status</Label>
+                  <RadioGroup
+                    value={invoice.status}
+                    onValueChange={(value: 'paid' | 'unpaid') => 
+                      setInvoice(prev => ({ ...prev, status: value }))
+                    }
+                    className="flex gap-6 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="paid" id="paid" />
+                      <Label htmlFor="paid">Paid</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="unpaid" id="unpaid" />
+                      <Label htmlFor="unpaid">Unpaid</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Items */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Invoice Items</CardTitle>
+                  <Button onClick={addItem} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {invoice.items.map((item, index) => (
+                  <div key={item.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Item {index + 1}</span>
+                      {invoice.items.length > 1 && (
+                        <Button 
+                          onClick={() => removeItem(index)} 
+                          variant="destructive" 
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <Label>Product Name *</Label>
+                        <Select
+                          value={item.productName}
+                          onValueChange={(value) => updateItem(index, 'productName', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select or enter product" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map((product, i) => (
+                              <SelectItem key={i} value={product.name}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>Color Code</Label>
+                          <Select
+                            value={item.colorCode}
+                            onValueChange={(value) => updateItem(index, 'colorCode', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Color" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.find(p => p.name === item.productName)?.colors.map((color, i) => (
+                                <SelectItem key={i} value={color}>
+                                  {color}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Volume</Label>
+                          <Select
+                            value={item.volume}
+                            onValueChange={(value) => updateItem(index, 'volume', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Volume" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.find(p => p.name === item.productName)?.volumes.map((volume, i) => (
+                                <SelectItem key={i} value={volume}>
+                                  {volume}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>Quantity *</Label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                            min="1"
+                          />
+                        </div>
+                        <div>
+                          <Label>Rate (₹) *</Label>
+                          <Input
+                            type="number"
+                            value={item.rate}
+                            onChange={(e) => updateItem(index, 'rate', parseFloat(e.target.value) || 0)}
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-3 rounded flex justify-between items-center">
+                        <span>Total:</span>
+                        <span className="font-medium flex items-center">
+                          <IndianRupee className="h-4 w-4" />
+                          {item.total.toFixed(2)}
+                        </span>
+                      </div>
+                      
+                      {item.finalName && (
+                        <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
+                          <span className="text-sm text-blue-800 font-medium">
+                            Final Name: {item.finalName}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Invoice Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoice Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span className="flex items-center">
+                      <IndianRupee className="h-4 w-4" />
+                      {invoice.subtotal.toFixed(2)}
+                    </span>
+                  </div>
+                  {invoice.gstEnabled && (
+                    <div className="flex justify-between">
+                      <span>GST (18%):</span>
+                      <span className="flex items-center">
+                        <IndianRupee className="h-4 w-4" />
+                        {invoice.tax.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-lg font-bold border-t pt-3">
+                    <span>Total:</span>
+                    <span className="flex items-center">
+                      <IndianRupee className="h-4 w-4" />
+                      {invoice.total.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         {/* Notes */}
-        <Card className="shadow-lg">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Additional Notes</CardTitle>
+            <CardTitle>Additional Notes</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
               value={invoice.notes}
               onChange={(e) => setInvoice(prev => ({ ...prev, notes: e.target.value }))}
-              className="min-h-20 text-base"
-              placeholder="Additional notes or terms..."
+              placeholder="Add any additional notes or terms..."
+              rows={4}
             />
           </CardContent>
         </Card>
 
         {/* Actions */}
-        <div className="space-y-3 pb-6">
+        <div className="flex gap-4">
           <Button
             onClick={createInvoice}
             disabled={isSubmitting}
-            className="w-full h-14 text-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            className="flex-1"
+            size="lg"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
@@ -682,34 +708,25 @@ const Mobile = () => {
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4" />
                 Create Invoice
               </span>
             )}
           </Button>
           
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={saveDraft}
-              variant="outline"
-              className="h-12 text-base"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Draft
-            </Button>
-            <Button
-              onClick={resetForm}
-              variant="outline"
-              className="h-12 text-base"
-            >
-              Reset Form
-            </Button>
-          </div>
+          <Button onClick={saveDraft} variant="outline" size="lg">
+            <Save className="h-4 w-4 mr-2" />
+            Save Draft
+          </Button>
+          
+          <Button onClick={resetForm} variant="outline" size="lg">
+            Reset
+          </Button>
         </div>
 
         {/* Status Display */}
         {invoice.submitStatus !== 'draft' && (
-          <Card className="shadow-lg">
+          <Card>
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
