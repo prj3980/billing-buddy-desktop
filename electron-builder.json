@@ -1,20 +1,24 @@
 
 {
   "appId": "com.billingbuddy.desktop",
-  "productName": "Billing Buddy Desktop", 
+  "productName": "Billing Buddy Desktop",
   "directories": {
-    "output": "dist-electron"
+    "output": "dist-electron",
+    "buildResources": "electron/assets"
   },
   "files": [
     "dist/**/*",
     "electron/main.js",
     "electron/preload.js",
-    "electron/assets/**/*"
+    "electron/assets/**/*",
+    "!electron/assets/*.ico",
+    "!electron/assets/*.icns"
   ],
   "extraResources": [
     {
       "from": "electron/assets",
-      "to": "assets"
+      "to": "assets",
+      "filter": ["**/*"]
     }
   ],
   "win": {
@@ -22,25 +26,58 @@
       {
         "target": "nsis",
         "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
       }
     ],
     "icon": "electron/assets/icon.ico",
-    "publisherName": "Billing Buddy"
+    "publisherName": "Billing Buddy",
+    "requestedExecutionLevel": "asInvoker"
   },
   "mac": {
-    "target": "dmg",
-    "icon": "electron/assets/icon.icns"
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "icon": "electron/assets/icon.icns",
+    "category": "public.app-category.business"
   },
   "linux": {
-    "target": "AppImage",
-    "icon": "electron/assets/icon.png"
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": ["x64"]
+      },
+      {
+        "target": "deb",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "electron/assets/icon.png",
+    "category": "Office"
   },
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
+    "allowElevation": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "installerIcon": "electron/assets/icon.ico",
-    "uninstallerIcon": "electron/assets/icon.ico"
+    "uninstallerIcon": "electron/assets/icon.ico",
+    "installerHeaderIcon": "electron/assets/icon.ico",
+    "deleteAppDataOnUninstall": false,
+    "runAfterFinish": true
+  },
+  "portable": {
+    "artifactName": "${productName}-${version}-portable.${ext}"
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "your-username",
+    "repo": "billing-buddy-desktop"
   }
 }

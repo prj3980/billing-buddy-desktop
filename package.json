@@ -47,6 +47,8 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^36.4.0",
     "electron-builder": "^24.13.3",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",

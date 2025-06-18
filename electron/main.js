@@ -5,8 +5,8 @@ const isDev = process.env.NODE_ENV === 'development';
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1400,
+    height: 900,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -14,7 +14,9 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, 'assets', 'icon.png'),
-    show: false
+    show: false,
+    titleBarStyle: 'default',
+    webSecurity: true
   });
 
   // Load the app
@@ -29,7 +31,6 @@ function createWindow() {
     mainWindow.show();
   });
 
-  // Handle window closed
   mainWindow.on('closed', () => {
     app.quit();
   });
@@ -37,7 +38,6 @@ function createWindow() {
   return mainWindow;
 }
 
-// This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   createWindow();
 
@@ -46,10 +46,9 @@ app.whenReady().then(() => {
   });
 });
 
-// Quit when all windows are closed
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// Hide menu bar
+// Hide menu bar for cleaner look
 Menu.setApplicationMenu(null);
