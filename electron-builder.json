@@ -10,9 +10,7 @@
     "dist/**/*",
     "electron/main.js",
     "electron/preload.js",
-    "electron/assets/**/*",
-    "!electron/assets/*.ico",
-    "!electron/assets/*.icns"
+    "node_modules/**/*"
   ],
   "extraResources": [
     {
@@ -32,7 +30,7 @@
         "arch": ["x64"]
       }
     ],
-    "icon": "electron/assets/icon.ico",
+    "icon": "electron/assets/icon.png",
     "publisherName": "Billing Buddy",
     "requestedExecutionLevel": "asInvoker"
   },
@@ -43,7 +41,7 @@
         "arch": ["x64", "arm64"]
       }
     ],
-    "icon": "electron/assets/icon.icns",
+    "icon": "electron/assets/icon.png",
     "category": "public.app-category.business"
   },
   "linux": {
@@ -66,9 +64,6 @@
     "allowElevation": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "installerIcon": "electron/assets/icon.ico",
-    "uninstallerIcon": "electron/assets/icon.ico",
-    "installerHeaderIcon": "electron/assets/icon.ico",
     "deleteAppDataOnUninstall": false,
     "runAfterFinish": true
   },

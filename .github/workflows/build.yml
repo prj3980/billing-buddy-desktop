@@ -31,32 +31,31 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      - name: Clear npm cache
+        run: npm cache clean --force
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Install Electron dependencies
-        run: |
-          npm install electron@latest electron-builder@latest cross-env@latest concurrently@latest wait-on@latest --save-dev
 
       - name: Build React app
         run: npm run build
 
       - name: Build Electron app (Windows)
         if: matrix.os == 'windows-latest'
-        run: npx electron-builder --win --x64 --publish never
+        run: npm run dist:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Electron app (macOS)
         if: matrix.os == 'macos-latest'
-        run: npx electron-builder --mac --x64 --arm64 --publish never
+        run: npm run dist:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Build Electron app (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: npx electron-builder --linux --x64 --publish never
+        run: npm run dist:linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -103,4 +102,3 @@ jobs:
             billing-buddy-linux/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
