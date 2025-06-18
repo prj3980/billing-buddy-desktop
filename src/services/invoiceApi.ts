@@ -45,7 +45,6 @@ class InvoiceApiService {
   constructor() {
     // Initialize with existing invoices if any
     this.ensureInvoicesExist();
-    this.ensureProductsExist();
   }
 
   static getInstance(): InvoiceApiService {
@@ -59,30 +58,6 @@ class InvoiceApiService {
     const existingInvoices = localStorage.getItem('invoices');
     if (!existingInvoices) {
       localStorage.setItem('invoices', JSON.stringify([]));
-    }
-  }
-
-  private ensureProductsExist() {
-    const existingProducts = localStorage.getItem('products');
-    if (!existingProducts) {
-      const defaultProducts = [
-        {
-          name: "Asian Paints",
-          colors: ["Red", "Blue", "Green", "White", "Black"],
-          volumes: ["1L", "4L", "10L", "20L"]
-        },
-        {
-          name: "Berger Paints",
-          colors: ["Yellow", "Orange", "Purple", "Brown"],
-          volumes: ["1L", "4L", "10L"]
-        },
-        {
-          name: "Nerolac Paints",
-          colors: ["Pink", "Grey", "Cream", "Sky Blue"],
-          volumes: ["1L", "4L", "10L", "20L"]
-        }
-      ];
-      localStorage.setItem('products', JSON.stringify(defaultProducts));
     }
   }
 
@@ -100,15 +75,6 @@ class InvoiceApiService {
     
     const nextNumber = todayInvoices.length + 1;
     return `${year}${month}${day}-${String(nextNumber).padStart(3, '0')}`;
-  }
-
-  async getNextInvoiceNumber(): Promise<string> {
-    return this.generateInvoiceNumber();
-  }
-
-  async getProducts(): Promise<any[]> {
-    const products = JSON.parse(localStorage.getItem('products') || '[]');
-    return products;
   }
 
   private generateWatermarkId(): string {
@@ -133,16 +99,14 @@ class InvoiceApiService {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
-    const invoiceNumber = this.generateInvoiceNumber();
+    const invoiceNumber = invoiceData.invoiceNumber || this.generateInvoiceNumber();
     const watermarkId = this.generateWatermarkId();
     
     const completeInvoice: ApiInvoice = {
       ...invoiceData,
-      id: invoiceData.id || Date.now().toString(),
       invoiceNumber,
       watermarkId,
-      storeInfo: this.getStoreInfo(),
-      createdAt: new Date().toISOString()
+      storeInfo: this.getStoreInfo()
     };
 
     // Save to PC's local storage
@@ -150,9 +114,9 @@ class InvoiceApiService {
     existingInvoices.push(completeInvoice);
     localStorage.setItem('invoices', JSON.stringify(existingInvoices));
 
-    console.log('Invoice saved to PC:', completeInvoice);
+    console.log('Invoice saved:', completeInvoice);
 
-    // Simulate auto-print with delay
+    // Simulate auto-print
     setTimeout(() => {
       this.markAsPrinted(completeInvoice.id, invoiceNumber);
     }, 2000 + Math.random() * 3000);
@@ -171,16 +135,6 @@ class InvoiceApiService {
       invoiceNumber
     };
     localStorage.setItem('printStatus', JSON.stringify(printStatus));
-    
-    // Update invoice status in main storage
-    const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    const invoiceIndex = invoices.findIndex((inv: any) => inv.id === invoiceId);
-    if (invoiceIndex !== -1) {
-      invoices[invoiceIndex].printed = true;
-      invoices[invoiceIndex].printedAt = new Date().toISOString();
-      localStorage.setItem('invoices', JSON.stringify(invoices));
-    }
-    
     console.log('Invoice marked as printed:', invoiceNumber);
   }
 
@@ -197,7 +151,7 @@ class InvoiceApiService {
 
   async getInvoices(): Promise<ApiInvoice[]> {
     const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    return invoices.sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+    return invoices;
   }
 }
 
@@ -225,36 +179,6 @@ if (typeof window !== 'undefined') {
         headers: { 'Content-Type': 'application/json' }
       });
     }
-
-    if (url.includes('/api/invoices/next-number')) {
-      try {
-        const nextNumber = await invoiceApi.getNextInvoiceNumber();
-        return new Response(JSON.stringify({ nextInvoiceNumber: nextNumber }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      } catch (error) {
-        return new Response(JSON.stringify({ error: 'Failed to get next invoice number' }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    if (url.includes('/api/products') && (!init || init.method === 'GET')) {
-      try {
-        const products = await invoiceApi.getProducts();
-        return new Response(JSON.stringify(products), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      } catch (error) {
-        return new Response(JSON.stringify({ error: 'Failed to fetch products' }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-    }
     
     if (url.includes('/api/invoices/status/')) {
       const invoiceId = url.split('/').pop()!;
@@ -281,7 +205,7 @@ if (typeof window !== 'undefined') {
       }
     }
 
-    if (url.includes('/api/invoices') && (!init || init.method === 'GET')) {
+    if (url.includes('/api/invoices') && init?.method === 'GET') {
       try {
         const invoices = await invoiceApi.getInvoices();
         return new Response(JSON.stringify(invoices), {
