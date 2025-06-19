@@ -26,7 +26,7 @@ export class ApiInterceptor {
       const url = typeof input === 'string' ? input : input.toString();
       
       // Check if it's an API call that should be mocked
-      if (url.startsWith('/api/') || (this.isElectron && url.includes('/api/'))) {
+      if (this.shouldMockRequest(url)) {
         return this.handleMockApiCall(url, init);
       }
       
@@ -35,9 +35,25 @@ export class ApiInterceptor {
     };
   }
 
+  private shouldMockRequest(url: string): boolean {
+    // Mock API calls that start with /api/ or contain /api/
+    return url.includes('/api/') || url.startsWith('/api/');
+  }
+
   private async handleMockApiCall(url: string, init?: RequestInit): Promise<Response> {
     const method = init?.method || 'GET';
-    const pathname = new URL(url, window.location.origin).pathname;
+    
+    // Extract pathname from URL
+    let pathname: string;
+    try {
+      const urlObj = new URL(url, window.location.origin);
+      pathname = urlObj.pathname;
+    } catch {
+      // If URL parsing fails, try to extract pathname manually
+      pathname = url.includes('/api/') ? url.substring(url.indexOf('/api/')) : url;
+    }
+
+    console.log(`Mock API call: ${method} ${pathname}`);
     
     try {
       switch (true) {
@@ -67,6 +83,7 @@ export class ApiInterceptor {
           return this.createErrorResponse('Invoice not found', 404);
           
         default:
+          console.warn(`Unknown API endpoint: ${pathname}`);
           return this.createErrorResponse('API endpoint not found', 404);
       }
     } catch (error) {
@@ -93,4 +110,5 @@ export class ApiInterceptor {
 // Initialize the interceptor
 export const initializeApiInterceptor = () => {
   ApiInterceptor.getInstance();
+  console.log('API Interceptor initialized');
 };
