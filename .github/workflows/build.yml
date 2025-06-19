@@ -46,19 +46,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Electron app (macOS)
-        if: matrix.os == 'macos-latest'
-        run: npm run dist:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-
-      - name: Build Electron app (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run dist:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
@@ -68,21 +55,6 @@ jobs:
             dist-electron/*.exe
             dist-electron/*.msi
 
-      - name: Upload macOS artifacts
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: billing-buddy-macos
-          path: dist-electron/*.dmg
-
-      - name: Upload Linux artifacts
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: billing-buddy-linux
-          path: |
-            dist-electron/*.AppImage
-            dist-electron/*.deb
 
   release:
     needs: build
@@ -96,9 +68,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
+          file: |
             billing-buddy-windows/*
-            billing-buddy-macos/*
-            billing-buddy-linux/*
+            
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
