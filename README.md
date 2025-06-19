@@ -1,73 +1,121 @@
-# Welcome to your Lovable project
 
-## Project info
+# Billing Buddy Desktop
 
-**URL**: https://lovable.dev/projects/5c91301d-1995-4970-a370-098b223b8e39
+A complete billing and inventory management system for hardware stores, built with React and Electron.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Desktop Application**: Works offline with Electron
+- **Mobile Interface**: Access via `/mobile` route for invoice creation on mobile devices
+- **Mock API**: Includes complete mock API for development and standalone operation
+- **Invoice Management**: Create, manage, and track invoices
+- **Product Catalog**: Manage products with colors and volumes
+- **Multi-platform**: Builds for Windows, macOS, and Linux
 
-**Use Lovable**
+## Building the Application
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5c91301d-1995-4970-a370-098b223b8e39) and start prompting.
+### Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js 18 or later
+- npm or yarn
 
-**Use your preferred IDE**
+### Local Development
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```bash
+# Install dependencies
+npm install
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
+
+# Start Electron development (in another terminal)
+npm run electron
 ```
 
-**Edit a file directly in GitHub**
+### Building for Production
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+#### Build Web Assets
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+#### Build Electron Executables
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+##### Windows
+```bash
+npx electron-builder --win --x64
+```
 
-## What technologies are used for this project?
+##### macOS
+```bash
+npx electron-builder --mac --x64 --arm64
+```
 
-This project is built with:
+##### Linux
+```bash
+npx electron-builder --linux --x64
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+##### All Platforms
+```bash
+npx electron-builder --win --mac --linux
+```
 
-## How can I deploy this project?
+### Output Files
 
-Simply open [Lovable](https://lovable.dev/projects/5c91301d-1995-4970-a370-098b223b8e39) and click on Share -> Publish.
+Built executables will be in the `dist-electron/` directory:
 
-## Can I connect a custom domain to my Lovable project?
+- **Windows**: `*.exe` (installer) and `*.exe` (portable)
+- **macOS**: `*.dmg`
+- **Linux**: `*.AppImage` and `*.deb`
 
-Yes, you can!
+### GitHub Actions Build
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The project includes automated builds via GitHub Actions:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. **Connect to GitHub**: Use the GitHub integration in Lovable
+2. **Push code**: All code will automatically sync to your repository
+3. **Automated builds**: GitHub Actions will build for all platforms
+4. **Releases**: Tag releases with `v*` to create GitHub releases with binaries
+
+### Configuration Files
+
+- `electron-builder.json`: Electron build configuration
+- `electron/main.js`: Main Electron process
+- `electron/preload.js`: Preload script for security
+- `.github/workflows/build.yml`: GitHub Actions configuration
+
+### Mobile Access
+
+Access the mobile interface at `/mobile` when running the application. The mobile interface includes:
+
+- Complete invoice creation
+- Product selection with colors/volumes
+- Real-time sync with desktop
+- Offline capability
+
+### API Structure
+
+The application includes a mock API service that simulates:
+
+- Product management
+- Invoice creation and tracking
+- Print status simulation
+- Health checks
+
+### Deployment Options
+
+1. **GitHub Releases**: Automated via GitHub Actions
+2. **Direct Distribution**: Build locally and distribute executables
+3. **Auto-updater**: Can be configured for automatic updates (requires code signing)
+
+### Notes
+
+- The application works completely offline
+- No external dependencies required after installation
+- Mock data is included for demonstration
+- Mobile interface automatically syncs with desktop
+
+## Support
+
+For issues or questions, please refer to the GitHub repository issues section.
