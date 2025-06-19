@@ -6,40 +6,26 @@ import { Smartphone, Wifi, Copy, QrCode, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const ConnectionInfo = () => {
-  const [localIP, setLocalIP] = useState<string>('localhost:5173');
+  const [localIP, setLocalIP] = useState<string>('192.168.1.100');
   const [mobileUrl, setMobileUrl] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
     // Get current host for mobile URL
-    const currentProtocol = window.location.protocol;
     const currentHost = window.location.host;
-    
-    // For development, use localhost:5173/mobile
-    // For production Electron, use the actual host
-    let baseUrl;
-    if (currentHost.includes('localhost') || currentHost.includes('127.0.0.1')) {
-      baseUrl = `${currentProtocol}//localhost:5173`;
-    } else {
-      baseUrl = `${currentProtocol}//${currentHost}`;
-    }
-    
-    const mobileAccessUrl = `${baseUrl}/mobile`;
+    const mobileAccessUrl = `${window.location.protocol}//${currentHost}/mobile`;
     setMobileUrl(mobileAccessUrl);
-    
-    // Try to detect local IP
+
+    // Try to detect local IP (simplified for demo)
     detectLocalIP();
   }, []);
 
   const detectLocalIP = async () => {
     try {
-      // Get the actual hostname
+      // This is a simplified IP detection - in real scenario you'd use a proper method
       const hostname = window.location.hostname;
       if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
         setLocalIP(hostname);
-      } else {
-        // For localhost, show a helpful message
-        setLocalIP('localhost:5173');
       }
     } catch (error) {
       console.log('Could not detect local IP');
@@ -56,6 +42,7 @@ const ConnectionInfo = () => {
   };
 
   const generateQRCode = () => {
+    // For demo purposes, show instructions to generate QR code
     toast({
       title: "QR Code",
       description: "Use any QR code generator with the mobile URL",
@@ -95,12 +82,11 @@ const ConnectionInfo = () => {
           <div className="text-sm text-gray-600 space-y-2">
             <p className="font-medium text-gray-800">Setup Instructions:</p>
             <ol className="list-decimal list-inside space-y-1 text-xs">
-              <li>Start the development server: <code>npm run dev</code></li>
               <li>Ensure mobile device is on same WiFi network</li>
-              <li>Replace 'localhost' with your PC's IP address if needed</li>
               <li>Open browser on mobile device</li>
               <li>Navigate to the URL above</li>
               <li>Create invoices on mobile - they'll sync to PC</li>
+              <li>PC will auto-print and update status</li>
             </ol>
           </div>
         </div>
@@ -127,7 +113,7 @@ const ConnectionInfo = () => {
         </div>
 
         <div className="text-xs text-gray-500 bg-yellow-50 p-3 rounded border-l-4 border-yellow-400">
-          <strong>Note:</strong> For mobile access, replace 'localhost' with your PC's actual IP address (e.g., 192.168.1.100:5173/mobile)
+          <strong>Note:</strong> For local network access, replace 'localhost' with your PC's IP address (e.g., 192.168.1.100:5173/mobile)
         </div>
       </CardContent>
     </Card>
