@@ -11,8 +11,8 @@
     "preview": "vite preview",
     "electron": "wait-on http://localhost:8080 && cross-env NODE_ENV=development electron electron/main.js",
     "electron:dev": "concurrently \"npm run dev\" \"npm run electron\"",
-    "dist:win": "npm run build && npx electron-builder --win --x64",
-    "dist": "npm run build && npx electron-builder --win --x64"
+    "dist:win": "&& npx electron-builder --win --x64",
+    "dist": "&& npx electron-builder --win --x64"
   },
   "main": "electron/main.js",
   "homepage": "./",
