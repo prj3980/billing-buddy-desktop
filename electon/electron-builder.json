@@ -1,0 +1,23 @@
+
+{
+  "appId": "com.billingbuddy.desktop",
+  "productName": "Billing Buddy Desktop",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/main.js",
+    "electron/preload.js"
+  ],
+  "win": {
+    "target": "nsis",
+    "icon": "electron/assets/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}

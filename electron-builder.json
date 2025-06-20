@@ -1,22 +1,20 @@
 
 {
   "appId": "com.billingbuddy.desktop",
-  "productName": "Billing Buddy Desktop",
+  "productName": "Billing Buddy Desktop", 
   "directories": {
-    "output": "dist-electron",
-    "buildResources": "electron/assets"
+    "output": "dist-electron"
   },
   "files": [
     "dist/**/*",
     "electron/main.js",
     "electron/preload.js",
-    "node_modules/**/*"
+    "electron/assets/**/*"
   ],
   "extraResources": [
     {
       "from": "electron/assets",
-      "to": "assets",
-      "filter": ["**/*"]
+      "to": "assets"
     }
   ],
   "win": {
@@ -24,31 +22,25 @@
       {
         "target": "nsis",
         "arch": ["x64"]
-      },
-      {
-        "target": "portable",
-        "arch": ["x64"]
       }
     ],
-    "icon": "electron/assets/icon.png",
-    "publisherName": "Billing Buddy",
-    "requestedExecutionLevel": "asInvoker"
+    "icon": "electron/assets/icon.ico",
+    "publisherName": "Billing Buddy"
+  },
+  "mac": {
+    "target": "dmg",
+    "icon": "electron/assets/icon.icns"
+  },
+  "linux": {
+    "target": "AppImage",
+    "icon": "electron/assets/icon.png"
   },
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
-    "allowElevation": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "deleteAppDataOnUninstall": false,
-    "runAfterFinish": true
-  },
-  "portable": {
-    "artifactName": "${productName}-${version}-portable.${ext}"
-  },
-  "publish": {
-    "provider": "github",
-    "owner": "your-username",
-    "repo": "billing-buddy-desktop"
+    "installerIcon": "electron/assets/icon.ico",
+    "uninstallerIcon": "electron/assets/icon.ico"
   }
 }

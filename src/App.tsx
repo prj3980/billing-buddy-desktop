@@ -7,11 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Mobile from "./pages/Mobile";
 import NotFound from "./pages/NotFound";
-import { initializeApiInterceptor } from "./services/apiInterceptor";
 import "./services/invoiceApi"; // Initialize API service
-
-// Initialize API interceptor for mock data
-initializeApiInterceptor();
 
 const queryClient = new QueryClient();
 

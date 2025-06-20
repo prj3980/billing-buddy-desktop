@@ -1,4 +1,4 @@
-  
+
 name: Build Electron App
 
 on:
@@ -6,8 +6,6 @@ on:
     branches:
       - main
       - master
-    tags:
-      - 'v*'
   pull_request:
     branches:
       - main
@@ -15,87 +13,47 @@ on:
 
 jobs:
   build:
+    runs-on: windows-latest
+
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-        
-    runs-on: ${{ matrix.os }}
+        node-version: [18.x]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Electron dependencies
+        run: |
+          npm install electron@latest electron-builder@latest cross-env@latest concurrently@latest wait-on@latest --save-dev
+
       - name: Build React app
         run: npm run build
 
-      - name: Build Electron app (Windows)
-        if: matrix.os == 'windows-latest'
-        run: npm run dist:win
+      - name: Build Electron app for Windows
+        run: npx electron-builder --win --x64 --publish never --config electron-builder.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Electron app (macOS)
-        if: matrix.os == 'macos-latest'
-        run: npm run dist:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-
-      - name: Build Electron app (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run dist:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
+      - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
           name: billing-buddy-windows
-          path: |
-            dist-electron/*.exe
-            dist-electron/*.msi
+          path: dist-electron/*.exe
 
-      - name: Upload macOS artifacts
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: billing-buddy-macos
-          path: dist-electron/*.dmg
-
-      - name: Upload Linux artifacts
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: billing-buddy-linux
-          path: |
-            dist-electron/*.AppImage
-            dist-electron/*.deb
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        
-      - name: Create Release
+      - name: Release on tag
         uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            billing-buddy-windows/*
-            billing-buddy-macos/*
-            billing-buddy-linux/*
+          files: dist-electron/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
