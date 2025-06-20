@@ -1,5 +1,5 @@
 
-name: Build Electron App - Windows Only
+name: Build Electron App
 
 on:
   push:
@@ -14,8 +14,12 @@ on:
       - master
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -36,32 +40,65 @@ jobs:
       - name: Build React app
         run: npm run build
 
-      - name: Build Electron app for Windows
-        run: npx electron-builder --win --x64
+      - name: Build Electron app (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npm run dist:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Electron app (macOS)
+        if: matrix.os == 'macos-latest'
+        run: npm run dist:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Build Electron app (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run dist:linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: billing-buddy-windows
           path: |
             dist-electron/*.exe
+            dist-electron/*.msi
+
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-buddy-macos
+          path: dist-electron/*.dmg
+
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-buddy-linux
+          path: |
+            dist-electron/*.AppImage
+            dist-electron/*.deb
 
   release:
-    needs: build-windows
+    needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
-      - name: Download Windows artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
-        with:
-          name: billing-buddy-windows
         
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: billing-buddy-windows/*
+          files: |
+            billing-buddy-windows/*
+            billing-buddy-macos/*
+            billing-buddy-linux/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
