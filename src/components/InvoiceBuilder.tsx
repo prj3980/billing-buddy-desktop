@@ -61,6 +61,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
   const [viewMode, setViewMode] = useState<'edit' | 'view'>('edit');
   const [createdInvoice, setCreatedInvoice] = useState<SavedInvoice | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid');
+  const [paperSize, setPaperSize] = useState<'A4' | 'A5'>('A4');
   const { toast } = useToast();
   
   // Form states
@@ -331,6 +332,16 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
 
     const storeInfo = createdInvoice.storeInfo || {};
     
+    // Paper size configurations
+    const isA5 = paperSize === 'A5';
+    const containerWidth = isA5 ? '420px' : '800px';
+    const fontSize = isA5 ? '10px' : '14px';
+    const headingSize = isA5 ? '14px' : '24px';
+    const padding = isA5 ? '10px' : '20px';
+    const qrSize = isA5 ? '60px' : '100px';
+    const tablePadding = isA5 ? '6px 4px' : '10px 8px';
+    const headerPadding = isA5 ? '8px 4px' : '12px 8px';
+    
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -338,29 +349,31 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
           <title>Invoice ${createdInvoice.invoiceNumber}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: Arial, sans-serif; padding: 20px; background: white; }
-            .invoice-container { max-width: 800px; margin: 0 auto; }
-            .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #333; }
-            .store-info h1 { color: #e11d48; font-size: 24px; margin-bottom: 5px; }
-            .store-info p { margin: 2px 0; font-size: 14px; }
+            body { font-family: Arial, sans-serif; padding: ${padding}; background: white; font-size: ${fontSize}; }
+            .invoice-container { max-width: ${containerWidth}; margin: 0 auto; }
+            .header { display: flex; justify-content: space-between; align-items: ${isA5 ? 'flex-start' : 'center'}; margin-bottom: ${isA5 ? '10px' : '20px'}; padding-bottom: ${isA5 ? '8px' : '15px'}; border-bottom: 2px solid #333; }
+            .store-info h1 { color: #e11d48; font-size: ${headingSize}; margin-bottom: 5px; }
+            .store-info p { margin: 2px 0; font-size: ${fontSize}; }
             .invoice-details { text-align: right; }
-            .customer-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; }
-            .customer-section h3 { margin-bottom: 10px; color: #333; }
-            .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            .items-table th { background: #e11d48; color: white; padding: 12px 8px; text-align: left; font-weight: bold; }
-            .items-table td { padding: 10px 8px; border-bottom: 1px solid #ddd; }
+            .invoice-details h2 { font-size: ${isA5 ? '16px' : '20px'}; }
+            .customer-section { background: #f8f9fa; padding: ${isA5 ? '8px' : '15px'}; border-radius: 8px; margin: ${isA5 ? '10px 0' : '20px 0'}; }
+            .customer-section h3 { margin-bottom: ${isA5 ? '5px' : '10px'}; color: #333; font-size: ${isA5 ? '12px' : '16px'}; }
+            .items-table { width: 100%; border-collapse: collapse; margin: ${isA5 ? '10px 0' : '20px 0'}; }
+            .items-table th { background: #e11d48; color: white; padding: ${headerPadding}; text-align: left; font-weight: bold; font-size: ${fontSize}; }
+            .items-table td { padding: ${tablePadding}; border-bottom: 1px solid #ddd; font-size: ${fontSize}; }
             .items-table tr:nth-child(even) { background: #f8f9fa; }
-            .totals { margin-top: 20px; }
-            .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
-            .total-row.final { font-weight: bold; font-size: 18px; border-top: 2px solid #333; padding-top: 15px; color: #e11d48; }
-            .notes { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
-            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
-            .qr-section { display: flex; align-items: center; gap: 15px; margin-top: 15px; }
-            .qr-code { width: 100px; height: 100px; }
-            .watermark-id { margin-top: 10px; font-size: 10px; }
+            .totals { margin-top: ${isA5 ? '10px' : '20px'}; }
+            .total-row { display: flex; justify-content: space-between; padding: ${isA5 ? '4px 0' : '8px 0'}; font-size: ${fontSize}; }
+            .total-row.final { font-weight: bold; font-size: ${isA5 ? '14px' : '18px'}; border-top: 2px solid #333; padding-top: ${isA5 ? '8px' : '15px'}; color: #e11d48; }
+            .notes { margin-top: ${isA5 ? '10px' : '20px'}; padding: ${isA5 ? '8px' : '15px'}; background: #f8f9fa; border-radius: 8px; }
+            .footer { margin-top: ${isA5 ? '15px' : '30px'}; text-align: center; font-size: ${isA5 ? '10px' : '12px'}; color: #666; }
+            .qr-section { display: flex; align-items: center; gap: ${isA5 ? '8px' : '15px'}; margin-top: ${isA5 ? '8px' : '15px'}; }
+            .qr-code { width: ${qrSize}; height: ${qrSize}; }
+            .watermark-id { margin-top: ${isA5 ? '5px' : '10px'}; font-size: ${isA5 ? '8px' : '10px'}; }
             @media print {
               body { padding: 0; }
               .no-print { display: none; }
+              @page { size: ${paperSize}; margin: ${isA5 ? '5mm' : '10mm'}; }
             }
           </style>
         </head>
@@ -479,7 +492,19 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                 <p className="text-gray-600">Invoice #{createdInvoice.invoiceNumber}</p>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Paper Size:</Label>
+                <Select value={paperSize} onValueChange={(value: 'A4' | 'A5') => setPaperSize(value)}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A4">A4</SelectItem>
+                    <SelectItem value="A5">A5</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button 
                 variant="outline" 
                 onClick={() => setViewMode('edit')} 
@@ -495,7 +520,7 @@ const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onClose }) => {
                 className="bg-green-600 hover:bg-green-700 shadow-md"
               >
                 <Printer className="h-5 w-5 mr-2" />
-                Print Invoice
+                Print {paperSize} Invoice
               </Button>
             </div>
           </div>
