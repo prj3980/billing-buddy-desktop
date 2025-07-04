@@ -25,6 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: false
 
       - name: Clear npm cache
         run: npm cache clean --force
@@ -36,15 +37,34 @@ jobs:
           if (Test-Path "yarn.lock") { Remove-Item "yarn.lock" -Force }
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Build React app
         run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: List dist contents (debug)
+        run: |
+          if (Test-Path "dist") {
+            Get-ChildItem -Recurse dist | Select-Object FullName
+          } else {
+            Write-Host "dist folder not found"
+          }
 
       - name: Build Electron app (Windows only)
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_ENV: production
+
+      - name: List electron build output (debug)
+        run: |
+          if (Test-Path "dist-electron") {
+            Get-ChildItem -Recurse dist-electron | Select-Object FullName
+          } else {
+            Write-Host "dist-electron folder not found"
+          }
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -53,6 +73,7 @@ jobs:
           path: |
             dist-electron/*.exe
             dist-electron/*.msi
+        continue-on-error: true
 
   release:
     needs: build

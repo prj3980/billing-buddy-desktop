@@ -10,6 +10,7 @@
     "dist/**/*",
     "electron/main.js",
     "electron/preload.js",
+    "electron/assets/**/*",
     "!node_modules/**/{CHANGELOG.md,README.md,README,readme.md,readme}",
     "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
     "!node_modules/*.d.ts",
@@ -51,10 +52,14 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "deleteAppDataOnUninstall": false,
-    "runAfterFinish": true
+    "runAfterFinish": true,
+    "installerIcon": "electron/assets/icon.png",
+    "uninstallerIcon": "electron/assets/icon.png"
   },
   "portable": {
     "artifactName": "${productName}-${version}-portable.${ext}"
   },
-  "publish": null
+  "publish": null,
+  "compression": "normal",
+  "npmRebuild": false
 }

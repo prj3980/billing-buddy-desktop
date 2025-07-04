@@ -11,12 +11,12 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: !isDev
     },
     icon: path.join(__dirname, 'assets', 'icon.png'),
     show: false,
-    titleBarStyle: 'default',
-    webSecurity: true
+    titleBarStyle: 'default'
   });
 
   // Load the app
@@ -24,18 +24,44 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:8080');
     mainWindow.webContents.openDevTools();
   } else {
-    // Use file protocol for production
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html')).catch(err => {
+    // Production: Load the built React app
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    console.log('Loading app from:', indexPath);
+    
+    mainWindow.loadFile(indexPath).catch(err => {
       console.error('Failed to load app:', err);
-      // Fallback: try to load from current directory
-      mainWindow.loadFile(path.join(process.resourcesPath, 'app.asar.unpacked/dist/index.html')).catch(err2 => {
-        console.error('Fallback load failed:', err2);
-      });
+      
+      // Fallback paths to try
+      const fallbackPaths = [
+        path.join(process.resourcesPath, 'app/dist/index.html'),
+        path.join(process.resourcesPath, 'dist/index.html'),
+        path.join(__dirname, 'dist/index.html')
+      ];
+      
+      let loaded = false;
+      for (const fallbackPath of fallbackPaths) {
+        if (!loaded) {
+          try {
+            console.log('Trying fallback path:', fallbackPath);
+            mainWindow.loadFile(fallbackPath).then(() => {
+              loaded = true;
+              console.log('Successfully loaded from:', fallbackPath);
+            }).catch(fallbackErr => {
+              console.error('Fallback failed:', fallbackPath, fallbackErr);
+            });
+          } catch (e) {
+            console.error('Error with fallback:', e);
+          }
+        }
+      }
     });
   }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    if (isDev) {
+      mainWindow.webContents.openDevTools();
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -59,3 +85,13 @@ app.on('window-all-closed', () => {
 
 // Hide menu bar for cleaner look
 Menu.setApplicationMenu(null);
+
+// Handle certificate errors in development
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  if (isDev) {
+    event.preventDefault();
+    callback(true);
+  } else {
+    callback(false);
+  }
+});
