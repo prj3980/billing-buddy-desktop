@@ -26,42 +26,13 @@ function createWindow() {
   } else {
     // Production: Load the built React app
     const indexPath = path.join(__dirname, '../dist/index.html');
-    console.log('Loading app from:', indexPath);
-    
     mainWindow.loadFile(indexPath).catch(err => {
       console.error('Failed to load app:', err);
-      
-      // Fallback paths to try
-      const fallbackPaths = [
-        path.join(process.resourcesPath, 'app/dist/index.html'),
-        path.join(process.resourcesPath, 'dist/index.html'),
-        path.join(__dirname, 'dist/index.html')
-      ];
-      
-      let loaded = false;
-      for (const fallbackPath of fallbackPaths) {
-        if (!loaded) {
-          try {
-            console.log('Trying fallback path:', fallbackPath);
-            mainWindow.loadFile(fallbackPath).then(() => {
-              loaded = true;
-              console.log('Successfully loaded from:', fallbackPath);
-            }).catch(fallbackErr => {
-              console.error('Fallback failed:', fallbackPath, fallbackErr);
-            });
-          } catch (e) {
-            console.error('Error with fallback:', e);
-          }
-        }
-      }
     });
   }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    if (isDev) {
-      mainWindow.webContents.openDevTools();
-    }
   });
 
   mainWindow.on('closed', () => {

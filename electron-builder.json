@@ -27,6 +27,6 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true
   },
-  "compression": "store",
+  "compression": "normal",
   "npmRebuild": false
 }

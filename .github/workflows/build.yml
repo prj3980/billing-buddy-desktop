@@ -34,29 +34,26 @@ jobs:
           if (Test-Path "dist-electron") { Remove-Item -Recurse -Force "dist-electron" }
 
       - name: Install dependencies
-        run: npm install --force
+        run: npm ci --force
         env:
           NODE_ENV: development
 
-      - name: Verify terser installation
-        run: |
-          npm list terser || npm install terser --save-dev
-          Write-Host "Terser installed successfully"
+      - name: Install terser explicitly
+        run: npm install terser --save-dev --force
 
-      - name: Verify dependencies
+      - name: Verify critical dependencies
         run: |
-          npm list --depth=0
-          if (!(Test-Path "node_modules")) { 
-            Write-Error "node_modules not found after install"
-            exit 1
-          }
+          npm list terser
+          npm list vite
+          npm list electron
+          npm list electron-builder
 
-      - name: Build React app
+      - name: Build React app for production
         run: npm run build
         env:
           NODE_ENV: production
 
-      - name: Verify React build
+      - name: Verify React build output
         run: |
           if (!(Test-Path "dist")) {
             Write-Error "React build failed - dist folder not found"
@@ -66,11 +63,22 @@ jobs:
             Write-Error "React build failed - index.html not found"
             exit 1
           }
+          Write-Host "React build successful"
+          Get-ChildItem -Path "dist" -Recurse | Select-Object Name, Length
 
       - name: Build Electron app
         run: npm run dist
         env:
           NODE_ENV: production
+
+      - name: Verify Electron build output
+        run: |
+          if (!(Test-Path "dist-electron")) {
+            Write-Error "Electron build failed - dist-electron folder not found"
+            exit 1
+          }
+          Write-Host "Electron build successful"
+          Get-ChildItem -Path "dist-electron" -Recurse | Select-Object Name, Length
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

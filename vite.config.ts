@@ -30,10 +30,15 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-toast']
         },
       },
     },
     chunkSizeWarningLimit: 1000,
+    terserOptions: mode === 'production' ? {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    } : undefined,
   },
 }));
