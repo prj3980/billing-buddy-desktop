@@ -24,47 +24,48 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: false
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Clear npm cache
-        run: npm cache clean --force
-
-      - name: Remove lock files to avoid conflicts
+      - name: Clean workspace
         run: |
-          if (Test-Path "package-lock.json") { Remove-Item "package-lock.json" -Force }
-          if (Test-Path "bun.lockb") { Remove-Item "bun.lockb" -Force }
-          if (Test-Path "yarn.lock") { Remove-Item "yarn.lock" -Force }
+          if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" }
+          if (Test-Path "dist") { Remove-Item -Recurse -Force "dist" }
+          if (Test-Path "dist-electron") { Remove-Item -Recurse -Force "dist-electron" }
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps --no-audit --no-fund
+        run: npm install --force
+        env:
+          NODE_ENV: development
+
+      - name: Verify dependencies
+        run: |
+          npm list --depth=0
+          if (!(Test-Path "node_modules")) { 
+            Write-Error "node_modules not found after install"
+            exit 1
+          }
 
       - name: Build React app
         run: npm run build
         env:
           NODE_ENV: production
 
-      - name: List dist contents (debug)
+      - name: Verify React build
         run: |
-          if (Test-Path "dist") {
-            Get-ChildItem -Recurse dist | Select-Object FullName
-          } else {
-            Write-Host "dist folder not found"
+          if (!(Test-Path "dist")) {
+            Write-Error "React build failed - dist folder not found"
+            exit 1
+          }
+          if (!(Test-Path "dist/index.html")) {
+            Write-Error "React build failed - index.html not found"
+            exit 1
           }
 
-      - name: Build Electron app (Windows only)
+      - name: Build Electron app
         run: npm run dist
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_ENV: production
-
-      - name: List electron build output (debug)
-        run: |
-          if (Test-Path "dist-electron") {
-            Get-ChildItem -Recurse dist-electron | Select-Object FullName
-          } else {
-            Write-Host "dist-electron folder not found"
-          }
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -73,7 +74,8 @@ jobs:
           path: |
             dist-electron/*.exe
             dist-electron/*.msi
-        continue-on-error: true
+            dist-electron/*.zip
+        if: always()
 
   release:
     needs: build
