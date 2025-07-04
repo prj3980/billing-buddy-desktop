@@ -29,8 +29,14 @@ jobs:
       - name: Clear npm cache
         run: npm cache clean --force
 
+      - name: Remove lock files to avoid conflicts
+        run: |
+          if (Test-Path "package-lock.json") { Remove-Item "package-lock.json" -Force }
+          if (Test-Path "bun.lockb") { Remove-Item "bun.lockb" -Force }
+          if (Test-Path "yarn.lock") { Remove-Item "yarn.lock" -Force }
+
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build React app
         run: npm run build

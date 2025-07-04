@@ -24,7 +24,14 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:8080');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // Use file protocol for production
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html')).catch(err => {
+      console.error('Failed to load app:', err);
+      // Fallback: try to load from current directory
+      mainWindow.loadFile(path.join(process.resourcesPath, 'app.asar.unpacked/dist/index.html')).catch(err2 => {
+        console.error('Fallback load failed:', err2);
+      });
+    });
   }
 
   mainWindow.once('ready-to-show', () => {
