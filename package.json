@@ -65,6 +65,7 @@
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "terser": "^5.43.1",
     "vaul": "^1.1.2",
     "wait-on": "^8.0.3"
   },
