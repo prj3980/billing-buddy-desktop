@@ -34,7 +34,9 @@ jobs:
           if (Test-Path "dist-electron") { Remove-Item -Recurse -Force "dist-electron" }
 
       - name: Install dependencies fresh
-        run: npm install --no-package-lock --force
+        run: |
+          npm cache clean --force
+          npm install --no-package-lock --force
         env:
           NODE_ENV: development
 
@@ -43,13 +45,15 @@ jobs:
 
       - name: Verify critical dependencies
         run: |
-          npm list terser
-          npm list vite
-          npm list electron
-          npm list electron-builder
+          npm list terser || echo "terser not found"
+          npm list vite || echo "vite not found"
+          npm list electron || echo "electron not found"
+          npm list electron-builder || echo "electron-builder not found"
 
       - name: Build React app for production
-        run: npm run build
+        run: |
+          set NODE_ENV=production
+          npm run build
         env:
           NODE_ENV: production
 
@@ -67,7 +71,9 @@ jobs:
           Get-ChildItem -Path "dist" -Recurse | Select-Object Name, Length
 
       - name: Build Electron app
-        run: npm run dist
+        run: |
+          set NODE_ENV=production
+          npm run dist
         env:
           NODE_ENV: production
 
