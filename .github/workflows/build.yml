@@ -75,7 +75,7 @@ jobs:
       - name: Build Electron app
         run: |
           set NODE_ENV=production
-          npx electron-builder --publish=never
+          npx electron-builder --publish=never --config.productName="Billing Buddy Desktop" --config.copyright="Copyright © 2024 Billing Buddy Team"
         env:
           NODE_ENV: production
 
