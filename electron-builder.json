@@ -2,6 +2,9 @@
 {
   "appId": "com.billingbuddy.desktop",
   "productName": "Billing Buddy Desktop",
+  "description": "A complete billing and inventory management system for hardware stores",
+  "author": "Billing Buddy Team",
+  "copyright": "Copyright © 2024 Billing Buddy Team",
   "directories": {
     "output": "dist-electron",
     "buildResources": "electron/assets"
@@ -28,5 +31,6 @@
     "createStartMenuShortcut": true
   },
   "compression": "normal",
-  "npmRebuild": false
+  "npmRebuild": false,
+  "buildDependenciesFromSource": false
 }
