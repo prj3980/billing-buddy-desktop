@@ -73,7 +73,7 @@ jobs:
       - name: Build Electron app
         run: |
           set NODE_ENV=production
-          npm run dist
+          npx electron-builder --publish=never
         env:
           NODE_ENV: production
 
