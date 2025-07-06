@@ -40,10 +40,8 @@ jobs:
         env:
           NODE_ENV: development
 
-      - name: Install and move electron-builder to devDependencies
-        run: |
-          npm install electron-builder --save-dev --no-package-lock --force
-          npm install terser --save-dev --no-package-lock --force
+      - name: Install terser explicitly
+        run: npm install terser --save-dev --no-package-lock --force
 
       - name: Verify critical dependencies
         run: |
@@ -75,7 +73,7 @@ jobs:
       - name: Build Electron app
         run: |
           set NODE_ENV=production
-          npx electron-builder --publish=never --config.productName="Billing Buddy Desktop" --config.copyright="Copyright © 2024 Billing Buddy Team"
+          npx electron-builder --publish=never
         env:
           NODE_ENV: production
 

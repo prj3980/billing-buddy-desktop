@@ -28,6 +28,5 @@
     "createStartMenuShortcut": true
   },
   "compression": "normal",
-  "npmRebuild": false,
-  "buildDependenciesFromSource": false
+  "npmRebuild": false
 }
