@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    strictPort: true,
   },
   plugins: [
     react(),
@@ -41,4 +42,7 @@ export default defineConfig(({ mode }) => ({
       },
     } : undefined,
   },
+  // Tauri expects a fixed port, fail if that port is not available
+  clearScreen: false,
+  envPrefix: ['VITE_', 'TAURI_'],
 }));
