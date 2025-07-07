@@ -1,5 +1,5 @@
 
-name: Build Tauri App
+name: Build Tauri App (Windows Only)
 
 on:
   push:
@@ -14,57 +14,10 @@ on:
       - master
 
 jobs:
-  build-tauri:
+  build-windows:
+    runs-on: windows-latest
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [macos-latest, ubuntu-20.04, windows-latest]
-
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-20.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Rust setup
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Billing Buddy v__VERSION__'
-          releaseBody: 'See the assets to download and install this version.'
-          releaseDraft: true
-          prerelease: false
-
-  # Simple build job for testing without releases
-  test-build:
-    runs-on: windows-latest
-    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -77,15 +30,52 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Clean install dependencies
+        run: |
+          Remove-Item -Path "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "package-lock.json" -Force -ErrorAction SilentlyContinue
+          npm install --force
 
       - name: Build React app
         run: npm run build
 
-      - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli
+      - name: Build Tauri app (Unsigned)
+        if: github.event_name == 'pull_request'
+        run: |
+          npm install -g @tauri-apps/cli
+          tauri build --verbose
+        env:
+          TAURI_BUNDLE_IDENTIFIER: com.lovable.billingbuddy
 
-      - name: Build Tauri app
-        run: tauri build --verbose
+      - name: Build Tauri app (Signed Release)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Billing Buddy v__VERSION__'
+          releaseBody: 'Windows executable for Billing Buddy'
+          releaseDraft: false
+          prerelease: false
+          args: --target x86_64-pc-windows-msvc
+
+      - name: Upload unsigned build artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-buddy-windows-unsigned
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/billing-buddy.exe
