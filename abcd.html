@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Asian Paints Invoicing App - Mockup</title>
+  <script src="https://cdn.tailwindcss.com "></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; }
+    .active-tab {
+      border-bottom: 2px solid #2563eb;
+      color: #2563eb;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+
+  <!-- Navigation -->
+  <div class="max-w-3xl mx-auto bg-white rounded shadow mb-6 p-4 flex gap-6 items-center">
+    <h1 class="text-xl font-bold">🎨 Asian Paints Invoicing</h1>
+    <div class="flex gap-4 text-sm font-medium">
+      <a href="#home" class="nav-link active-tab">🏠 Home</a>
+      <a href="#add-product" class="nav-link">➕ Add Product</a>
+      <a href="#invoice" class="nav-link">🧾 New Invoice</a>
+      <a href="#settings" class="nav-link">⚙️ Store Settings</a>
+    </div>
+  </div>
+
+  <!-- Pages -->
+  <div id="pages" class="max-w-3xl mx-auto bg-white rounded shadow p-6 space-y-6">
+
+    <!-- Home Page -->
+    <div id="home" class="page block">
+      <h2 class="text-lg font-semibold mb-4">Welcome!</h2>
+      <p class="mb-4">Use the navigation above to manage products, create invoices, and set up your store details.</p>
+      <div class="grid grid-cols-2 gap-4">
+        <button class="bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded text-center">
+          <a href="#add-product">➕ Add Product</a>
+        </button>
+        <button class="bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded text-center">
+          <a href="#invoice">🧾 Create Invoice</a>
+        </button>
+        <button class="bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded text-center col-span-2">
+          <a href="#settings">⚙️ Store Settings</a>
+        </button>
+      </div>
+    </div>
+
+    <!-- Add Product -->
+    <div id="add-product" class="page hidden">
+      <h2 class="text-lg font-semibold mb-4">Add New Product</h2>
+      <form class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Product Name</label>
+          <input type="text" placeholder="e.g., Royale Sand" class="border rounded w-full p-2" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Brand</label>
+          <input type="text" placeholder="e.g., Asian Paints" class="border rounded w-full p-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">
+            <input type="checkbox" /> Has Multiple Color Codes?
+          </label>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Price (Optional)</label>
+          <input type="number" placeholder="₹" class="border rounded w-full p-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Stock</label>
+          <input type="number" placeholder="e.g., 50" class="border rounded w-full p-2" />
+        </div>
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded">
+          Save Product
+        </button>
+      </form>
+    </div>
+
+    <!-- Invoice Builder -->
+    <div id="invoice" class="page hidden">
+      <h2 class="text-lg font-semibold mb-4">Create New Invoice</h2>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Customer Name</label>
+        <input type="text" placeholder="Enter customer name" class="border rounded w-full p-2" />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Select Product</label>
+        <select class="border rounded w-full p-2">
+          <option>-- Select Product --</option>
+          <option>Royale Sand</option>
+          <option>Apex Gloss</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <strong>Items in Invoice:</strong>
+        <ul class="list-disc pl-5 mt-2 text-sm text-gray-700">
+          <li>Royale Sand (Beige) x 2 → ₹2000</li>
+          <li>Apex Gloss (White) x 1 → ₹1200</li>
+        </ul>
+      </div>
+
+      <div class="mb-4 flex gap-4">
+        <label><input type="checkbox" /> Apply GST</label>
+        <label><input type="checkbox" /> Apply Discount (5%)</label>
+      </div>
+
+      <div class="mt-6">
+        <h3 class="font-semibold mb-2">Preview Invoice</h3>
+        <div class="border rounded p-4 bg-gray-50 text-sm">
+          <p class="font-bold">Asian Paints Delhi</p>
+          <p>123 Paint Street, Delhi</p>
+          <p>Ph: 9876543210 | GSTIN: 07ABCDE1234F1Z5</p>
+          <hr class="my-2" />
+          <p><strong>Customer:</strong> Rahul Sharma</p>
+          <table class="w-full my-2 text-left">
+            <tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr>
+            <tr><td>Royale Sand (Beige)</td><td>2</td><td>₹1000</td><td>₹2000</td></tr>
+            <tr><td>Apex Gloss (White)</td><td>1</td><td>₹1200</td><td>₹1200</td></tr>
+          </table>
+          <hr class="my-2" />
+          <p><strong>Grand Total:</strong> ₹3200</p>
+          <img src="https://via.placeholder.com/100 " alt="QR Code" class="mt-2" />
+        </div>
+      </div>
+
+      <button class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded mt-4">
+        Print Invoice
+      </button>
+    </div>
+
+    <!-- Store Settings -->
+    <div id="settings" class="page hidden">
+      <h2 class="text-lg font-semibold mb-4">Store Settings</h2>
+      <form class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Store Name</label>
+          <input type="text" placeholder="e.g., Asian Paints - South Delhi" class="border rounded w-full p-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Address</label>
+          <input type="text" placeholder="e.g., 123 Paint Street" class="border rounded w-full p-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+          <input type="text" placeholder="e.g., 9876543210" class="border rounded w-full p-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">GSTIN</label>
+          <input type="text" placeholder="e.g., 07ABCDE1234F1Z5" class="border rounded w-full p-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Payment QR Code</label>
+          <input type="file" class="border rounded w-full p-2" />
+        </div>
+        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded">
+          Save Settings
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Script for Tabs -->
+  <script>
+    const links = document.querySelectorAll('.nav-link');
+    const pages = document.querySelectorAll('.page');
+
+    function showPage(hash) {
+      pages.forEach(p => p.classList.add('hidden'));
+      if (!hash || hash === '#') hash = '#home';
+      document.querySelector(hash).classList.remove('hidden');
+      links.forEach(link => {
+        link.classList.remove('active-tab');
+        if (link.hash === hash) link.classList.add('active-tab');
+      });
+    }
+
+    window.addEventListener('hashchange', () => showPage(location.hash));
+    window.addEventListener('DOMContentLoaded', () => {
+      showPage(location.hash);
+    });
+  </script>
+
+</body>
+</html>
